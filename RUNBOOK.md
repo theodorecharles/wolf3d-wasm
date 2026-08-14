@@ -1,7 +1,7 @@
 # wolf3d-wasm implementation runbook
 
-Read `/home/ted/Development/wasm/RUNBOOK.md` first. This downstream project
-starts from the native Wolf4SDL source. Its Emscripten target, launcher, data
+This downstream project starts from the native Wolf4SDL source. Its
+Emscripten target, launcher, data
 mount, main-loop adaptation, audio path, input policy, persistence, server
 lifecycle, and Docker packaging are implemented here; no existing Wolfenstein
 3D WASM port is an implementation input.
