@@ -96,6 +96,10 @@ void	VL_Shutdown (void)
 
 void	VL_SetVGAPlaneMode (void)
 {
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] creating the SDL video surface\n");
+    fflush(stdout);
+#endif
 #ifdef SPEAR
     SDL_WM_SetCaption("Spear of Destiny", NULL);
 #else
@@ -104,14 +108,30 @@ void	VL_SetVGAPlaneMode (void)
 
     if(screenBits == -1)
     {
+#ifdef WOLF4SDL_WEB
+        // The original renderer is genuinely palette-indexed. Emscripten's
+        // SDL1 shim keys its surface layout from SDL_HWPALETTE (rather than
+        // the requested depth), so keep the browser presentation surface
+        // indexed as well and let the shim expand it into canvas RGBA.
+        screenBits = 8;
+#else
         const SDL_VideoInfo *vidInfo = SDL_GetVideoInfo();
         screenBits = vidInfo->vfmt->BitsPerPixel;
+#endif
     }
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] video mode %dx%dx%d\n", screenWidth, screenHeight, screenBits);
+    fflush(stdout);
+#endif
 
     screen = SDL_SetVideoMode(screenWidth, screenHeight, screenBits,
           (usedoublebuffering ? SDL_HWSURFACE | SDL_DOUBLEBUF : 0)
         | (screenBits == 8 ? SDL_HWPALETTE : 0)
         | (fullscreen ? SDL_FULLSCREEN : 0));
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] SDL video surface call returned\n");
+    fflush(stdout);
+#endif
     if(!screen)
     {
         printf("Unable to set %ix%ix%i video mode: %s\n", screenWidth,
@@ -125,7 +145,11 @@ void	VL_SetVGAPlaneMode (void)
     SDL_SetColors(screen, gamepal, 0, 256);
     memcpy(curpal, gamepal, sizeof(SDL_Color) * 256);
 
-    screenBuffer = SDL_CreateRGBSurface(SDL_SWSURFACE, screenWidth,
+    screenBuffer = SDL_CreateRGBSurface(SDL_SWSURFACE
+#ifdef WOLF4SDL_WEB
+        | SDL_HWPALETTE
+#endif
+        , screenWidth,
         screenHeight, 8, 0, 0, 0, 0);
     if(!screenBuffer)
     {
@@ -147,6 +171,10 @@ void	VL_SetVGAPlaneMode (void)
     CHECKMALLOCRESULT(pixelangle);
     wallheight = (int *) malloc(screenWidth * sizeof(int));
     CHECKMALLOCRESULT(wallheight);
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] SDL video surface is ready\n");
+    fflush(stdout);
+#endif
 }
 
 /*

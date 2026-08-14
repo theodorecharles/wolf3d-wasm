@@ -118,7 +118,46 @@ void VW_MeasurePropString (const char *string, word *width, word *height)
 
 void VH_UpdateScreen()
 {
+#ifdef WOLF4SDL_WEB
+	if(screen == NULL || screenBuffer == NULL)
+		return;
+
+	if(screen->format->BytesPerPixel != 1 || screenBuffer->format->BytesPerPixel != 1)
+		Quit("VH_UpdateScreen: expected indexed browser surfaces, got %u/%u bits",
+		     (unsigned)screenBuffer->format->BitsPerPixel,
+		     (unsigned)screen->format->BitsPerPixel);
+
+	const bool sourceLocked = SDL_MUSTLOCK(screenBuffer);
+	if(sourceLocked && SDL_LockSurface(screenBuffer) < 0)
+		Quit("VH_UpdateScreen: could not lock source surface: %s", SDL_GetError());
+	// Emscripten's SDL 1 compatibility layer presents a software surface whose
+	// unlock operation is the actual canvas upload. SDL_MUSTLOCK is false for
+	// that surface, and SDL_Flip is intentionally a no-op, so always pair a
+	// lock/unlock around browser framebuffer writes.
+	if(SDL_LockSurface(screen) < 0)
+	{
+		if(sourceLocked)
+			SDL_UnlockSurface(screenBuffer);
+		Quit("VH_UpdateScreen: could not lock browser surface: %s", SDL_GetError());
+	}
+
+	const unsigned copyWidth = (unsigned)screenBuffer->w < (unsigned)screen->w
+	                         ? (unsigned)screenBuffer->w : (unsigned)screen->w;
+	const unsigned copyHeight = (unsigned)screenBuffer->h < (unsigned)screen->h
+	                          ? (unsigned)screenBuffer->h : (unsigned)screen->h;
+	for(unsigned y = 0; y < copyHeight; ++y)
+	{
+		const Uint8 *src = (const Uint8 *)screenBuffer->pixels + y * screenBuffer->pitch;
+		Uint8 *dst = (Uint8 *)screen->pixels + y * screen->pitch;
+		memcpy(dst, src, copyWidth);
+	}
+
+	SDL_UnlockSurface(screen);
+	if(sourceLocked)
+		SDL_UnlockSurface(screenBuffer);
+#else
 	SDL_BlitSurface(screenBuffer, NULL, screen, NULL);
+#endif
 	SDL_Flip(screen);
 }
 
@@ -244,7 +283,11 @@ void LoadLatchMem (void)
 //
 // tile 8s
 //
-    surf = SDL_CreateRGBSurface(SDL_HWSURFACE, 8*8,
+    surf = SDL_CreateRGBSurface(SDL_HWSURFACE
+#ifdef WOLF4SDL_WEB
+        | SDL_HWPALETTE
+#endif
+        , 8*8,
         ((NUMTILE8 + 7) / 8) * 8, 8, 0, 0, 0, 0);
     if(surf == NULL)
     {
@@ -275,7 +318,11 @@ void LoadLatchMem (void)
 	{
 		width = pictable[i-STARTPICS].width;
 		height = pictable[i-STARTPICS].height;
-		surf = SDL_CreateRGBSurface(SDL_HWSURFACE, width, height, 8, 0, 0, 0, 0);
+		surf = SDL_CreateRGBSurface(SDL_HWSURFACE
+#ifdef WOLF4SDL_WEB
+            | SDL_HWPALETTE
+#endif
+            , width, height, 8, 0, 0, 0, 0);
         if(surf == NULL)
         {
             Quit("Unable to create surface for picture!");

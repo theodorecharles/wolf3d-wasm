@@ -10,11 +10,14 @@ WEB ?= 0
 
 ifeq ($(WEB),1)
     CFLAGS += -DWOLF4SDL_WEB
+    CFLAGS += -pthread
     CXXFLAGS += -Wno-c++11-narrowing
     CFLAGS_SDL ?= -s USE_SDL=1
     LDFLAGS_SDL ?= -s USE_SDL=1
     LDFLAGS += -s ALLOW_MEMORY_GROWTH=1
-    LDFLAGS += -s ASYNCIFY=1
+    LDFLAGS += -pthread
+    LDFLAGS += -s PROXY_TO_PTHREAD=1
+    LDFLAGS += -s PTHREAD_POOL_SIZE=1
     LDFLAGS += -s FORCE_FILESYSTEM=1
     LDFLAGS += -s INVOKE_RUN=0
     LDFLAGS += -s EXIT_RUNTIME=0

@@ -1031,7 +1031,9 @@ void InitDigiMap (void)
     {
         DigiMap[map[0]] = map[1];
         DigiChannel[map[1]] = map[2];
+#ifndef WOLF4SDL_WEB
         SD_PrepareSound(map[1]);
+#endif
     }
 }
 
@@ -1208,6 +1210,10 @@ static void InitGame()
 #endif
 
     // initialize SDL
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] initializing SDL on the engine worker\n");
+    fflush(stdout);
+#endif
 #if defined _WIN32
     putenv("SDL_VIDEODRIVER=directx");
 #endif
@@ -1216,6 +1222,10 @@ static void InitGame()
         printf("Unable to init SDL: %s\n", SDL_GetError());
         exit(1);
     }
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] SDL initialized\n");
+    fflush(stdout);
+#endif
     atexit(SDL_Quit);
 
     int numJoysticks = SDL_NumJoysticks();
@@ -1233,6 +1243,10 @@ static void InitGame()
 #endif
 
     SignonScreen ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] sign-on surface prepared\n");
+    fflush(stdout);
+#endif
 
 #if defined _WIN32
     if(!fullscreen)
@@ -1250,13 +1264,41 @@ static void InitGame()
     }
 #endif
 	VW_UpdateScreen();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] first frame presented\n");
+    fflush(stdout);
+#endif
 
     VH_Startup ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] video resources initialized\n");
+    fflush(stdout);
+#endif
     IN_Startup ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] input initialized\n");
+    fflush(stdout);
+#endif
     PM_Startup ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] page manager initialized\n");
+    fflush(stdout);
+#endif
     SD_Startup ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] sound stub initialized\n");
+    fflush(stdout);
+#endif
     CA_Startup ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] cache manager initialized\n");
+    fflush(stdout);
+#endif
     US_Startup ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] user interface initialized\n");
+    fflush(stdout);
+#endif
 
     // TODO: Will any memory checking be needed someday??
 #ifdef NOTYET
@@ -1282,10 +1324,22 @@ static void InitGame()
 // build some tables
 //
     InitDigiMap ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] digital sound map initialized\n");
+    fflush(stdout);
+#endif
 
     ReadConfig ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] configuration loaded\n");
+    fflush(stdout);
+#endif
 
     SetupSaveGames();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] save slots scanned\n");
+    fflush(stdout);
+#endif
 
 //
 // HOLDING DOWN 'M' KEY?
@@ -1305,6 +1359,10 @@ static void InitGame()
 // draw intro screen stuff
 //
     IntroScreen ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] intro diagnostics drawn\n");
+    fflush(stdout);
+#endif
 
 #ifdef _arch_dreamcast
     //TODO: VMU Selection Screen
@@ -1318,6 +1376,10 @@ static void InitGame()
     CA_CacheGrChunk(STATUSBARPIC);
 
     LoadLatchMem ();
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] menu graphics loaded\n");
+    fflush(stdout);
+#endif
     BuildTables ();          // trig tables
     SetupWalls ();
 
@@ -1945,15 +2007,36 @@ void CheckParameters(int argc, char *argv[])
 
 int main (int argc, char *argv[])
 {
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] native main entered\n");
+    fflush(stdout);
+#endif
 #if defined(_arch_dreamcast)
     DC_Init();
 #else
     CheckParameters(argc, argv);
 #endif
 
+#ifdef WOLF4SDL_WEB
+    // A browser launch already has an explicit Play gesture. Skip the DOS-era
+    // sign-on acknowledgement and attract-page waits so the real menu appears
+    // immediately and the worker never waits on an invisible pre-menu key.
+    param_nowait = true;
+#endif
+
     CheckForEpisodes();
 
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] registered data detected\n");
+    fflush(stdout);
+#endif
+
     InitGame();
+
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] engine initialized; entering the original demo/menu loop\n");
+    fflush(stdout);
+#endif
 
     DemoLoop();
 

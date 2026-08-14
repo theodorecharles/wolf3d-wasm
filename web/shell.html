@@ -71,6 +71,12 @@
     var Module = {
       noInitialRun: true,
       canvas,
+      preRun: [() => {
+        // Wolf4SDL owns every pixel in its palette surfaces. Avoid SDL1's
+        // unnecessary canvas-to-surface readback, which Emscripten cannot do
+        // for SDL_HWPALETTE surfaces; unlock still uploads each completed frame.
+        SDL.defaults.copyOnLock = false;
+      }],
       print: (text) => console.log(`[Wolf4SDL WASM] ${text}`),
       printErr: (text) => console.error(`[Wolf4SDL WASM] ${text}`),
       onRuntimeInitialized() {
