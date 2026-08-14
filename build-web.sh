@@ -4,10 +4,10 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dist_dir="$repo_dir/build-web/dist"
 framework_dir="${WASM_FRAMEWORK_DIR:-$repo_dir/../wasm-game-framework}"
-required_framework_version="0.7.1"
-required_framework_commit="9359fb1"
+required_framework_version="0.7.2"
+required_framework_commit="e4b78d6a1ab9992f35c0a098d60f15d8e1c3e89b"
 framework_version="$(node -p "require('$framework_dir/package.json').version")"
-framework_commit="$(git -C "$framework_dir" rev-parse --short=7 HEAD)"
+framework_commit="$(git -C "$framework_dir" rev-parse HEAD)"
 
 if [[ "$framework_version" != "$required_framework_version" || "$framework_commit" != "$required_framework_commit" ]]; then
     printf 'Wolf3D WASM requires wasm-game-framework %s at %s; found %s at %s.\n' \
