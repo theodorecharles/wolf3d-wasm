@@ -9,8 +9,8 @@ framework_dir="${WASM_FRAMEWORK_DIR:-$repo_dir/../wasm-game-framework}"
 
 for required in wolf3d.js wolf3d.wasm wolf3d.ico wolf3d-192.png wolf3d-512.png \
     game-adapter.js wasm-game.json wasm-game-data.json \
-    shared-shell/index.html shared-shell/wolfwasm-shell.js shared-shell/wolfwasm-shell.css \
-    shared-shell/wolfwasm-bootstrap.js shared-shell/wasm-game-framework.json; do
+    shared-shell/index.html shared-shell/wasm-game-framework.js shared-shell/wasm-game-framework.css \
+    shared-shell/wasm-game-bootstrap.js shared-shell/wasm-game-framework.json; do
     if [[ ! -f "$dist_dir/$required" ]]; then
         printf 'Missing generated web artifact: %s\n' "$required" >&2
         exit 1
@@ -47,15 +47,15 @@ const m=JSON.parse(fs.readFileSync(process.argv[2]));
 const p=JSON.parse(fs.readFileSync(process.argv[3]));
 if(c.id!=="wolf3d"||c.displayMode!=="4:3"||c.graphics!==false||c.identity!==false||c.fullscreen!==true)process.exit(1);
 if(!c.pwa||c.pwa.icons.length!==2||m.namespace!=="wolf3d-registered"||m.files.length!==8||m.files.some(f=>!f.sha256))process.exit(1);
-if(p.package!=="@wasm-game-framework/browser"||p.version!=="0.6.1"||!p.bootstrapSha256)process.exit(1);
+if(p.package!=="@wasm-game-framework/browser"||p.version!=="0.7.0"||!p.bootstrapSha256)process.exit(1);
 ' "$dist_dir/wasm-game.json" "$dist_dir/wasm-game-data.json" "$dist_dir/shared-shell/wasm-game-framework.json"
 
 node --check "$dist_dir/wolf3d.js"
 node --check "$dist_dir/game-adapter.js"
-node --check "$dist_dir/shared-shell/wolfwasm-shell.js"
-node --check "$dist_dir/shared-shell/wolfwasm-bootstrap.js"
+node --check "$dist_dir/shared-shell/wasm-game-framework.js"
+node --check "$dist_dir/shared-shell/wasm-game-bootstrap.js"
 cmp "$repo_dir/web/game-adapter.js" "$dist_dir/game-adapter.js"
 cmp "$repo_dir/web/wasm-game.json" "$dist_dir/wasm-game.json"
-cmp "$framework_dir/dist/wolfwasm-shell.js" "$dist_dir/shared-shell/wolfwasm-shell.js"
+cmp "$framework_dir/dist/wasm-game-framework.js" "$dist_dir/shared-shell/wasm-game-framework.js"
 file "$dist_dir/wolf3d.wasm"
-printf 'Static Wolfenstein 3D web build passed framework 0.6.1 and owner-data boundary checks.\n'
+printf 'Static Wolfenstein 3D web build passed framework 0.7.0 and owner-data boundary checks.\n'

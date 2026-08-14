@@ -11,7 +11,7 @@ Never submit work upstream. Never commit, upload, or package retail data.
 ## Current checkpoint
 
 `./build-web.sh` produces an assetless SDL1/Emscripten client in
-`build-web/dist/`. Framework 0.6.1 owns the canonical launcher, exact
+`build-web/dist/`. Framework 0.7.0 owns the canonical launcher, exact
 container provisioning, browser IndexedDB cache, 4:3 canvas, input capture,
 fullscreen preference, and PWA installation metadata. The adapter mounts the
 eight validated full-version `.WL6` files under `/game` and starts the native
