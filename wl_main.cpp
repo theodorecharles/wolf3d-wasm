@@ -72,6 +72,15 @@ void    Quit (const char *error,...);
 boolean startgame;
 boolean loadedgame;
 int     mouseadjustment;
+#ifdef WOLF4SDL_WEB
+#include <emscripten/emscripten.h>
+volatile int WolfWasmRuntimeState = 0;
+
+extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserRuntimeState()
+{
+    return WolfWasmRuntimeState;
+}
+#endif
 
 char    configdir[256] = "";
 char    configname[13] = "config.";

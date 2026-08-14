@@ -65,6 +65,26 @@ static bool NeedRestore = false;
 #ifdef WOLF4SDL_WEB
 static int WebMouseDeltaX = 0;
 static int WebMouseDeltaY = 0;
+#include <emscripten/emscripten.h>
+
+extern "C" EMSCRIPTEN_KEEPALIVE void WolfWasm_BrowserSetInputCaptured(int captured)
+{
+    GrabInput = captured != 0;
+    if (!GrabInput)
+    {
+        WebMouseDeltaX = 0;
+        WebMouseDeltaY = 0;
+    }
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void WolfWasm_BrowserOpenMenu()
+{
+    if (WolfWasmRuntimeState == 2)
+    {
+        LastScan = sc_Escape;
+        Keyboard[sc_Escape] = true;
+    }
+}
 #endif
 
 /*

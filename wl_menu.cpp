@@ -396,6 +396,10 @@ US_ControlPanel (ScanCode scancode)
 {
     int which;
 
+#ifdef WOLF4SDL_WEB
+    WolfWasmRuntimeState = 1;
+#endif
+
 #ifdef _arch_dreamcast
     DC_StatusClearLCD();
 #endif
@@ -574,6 +578,10 @@ US_ControlPanel (ScanCode scancode)
 
 #ifdef SPEAR
     UnCacheLump (OPTIONS_LUMP_START, OPTIONS_LUMP_END);
+#endif
+#ifdef WOLF4SDL_WEB
+    if (ingame)
+        WolfWasmRuntimeState = 2;
 #endif
 }
 

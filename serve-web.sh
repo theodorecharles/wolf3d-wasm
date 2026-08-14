@@ -4,11 +4,18 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 port="${1:-8011}"
 
-if [[ ! -f "$repo_dir/build-web/dist/index.html" ]]; then
+if [[ ! -f "$repo_dir/build-web/dist/wasm-game.json" ]]; then
     printf 'No browser build found. Run ./build-web.sh first.\n' >&2
     exit 1
 fi
 
-exec python3 -m http.server "$port" \
-    --bind 127.0.0.1 \
-    --directory "$repo_dir/build-web/dist"
+framework_dir="${WASM_FRAMEWORK_DIR:-$repo_dir/../wasm-game-framework}"
+data_root="${WOLF3D_DATA_ROOT:-$repo_dir/../data}"
+exec env \
+    WASM_GAME_SITE_ROOT="$repo_dir/build-web/dist" \
+    WASM_GAME_SHELL_ROOT="$repo_dir/build-web/dist/shared-shell" \
+    WASM_GAME_DATA_MANIFEST="$repo_dir/build-web/dist/wasm-game-data.json" \
+    WASM_GAME_DATA_ROOT="$data_root" \
+    WASM_GAME_HTTP_PORT="$port" \
+    WASM_GAME_VARIANT=wolf3d \
+    node "$framework_dir/server/static-server.js"

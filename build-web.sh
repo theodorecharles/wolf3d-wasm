@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dist_dir="$repo_dir/build-web/dist"
+framework_dir="${WASM_FRAMEWORK_DIR:-$repo_dir/../wasm-game-framework}"
 
 if ! command -v emcc >/dev/null 2>&1; then
     emsdk_dir="${EMSDK_DIR:-${EMSDK:-}}"
@@ -29,6 +30,18 @@ emmake make -C "$repo_dir" -j"$(nproc)" \
     WEB=1 \
     CC=emcc \
     CXX=em++ \
-    BINARY=build-web/dist/index.html
+    BINARY=build-web/dist/wolf3d.js
 
-printf '[Wolf4SDL WASM] Browser build ready: %s/index.html\n' "$dist_dir"
+cp "$repo_dir/web/game-adapter.js" "$repo_dir/web/wasm-game.json" \
+    "$repo_dir/web/wasm-game-data.json" "$dist_dir/"
+cp "$repo_dir/win/Wolf4SDL.ico" "$dist_dir/wolf3d.ico"
+if command -v magick >/dev/null 2>&1; then
+    magick "$repo_dir/win/Wolf4SDL.ico[1]" -filter point -resize 192x192 "$dist_dir/wolf3d-192.png"
+    magick "$repo_dir/win/Wolf4SDL.ico[1]" -filter point -resize 512x512 "$dist_dir/wolf3d-512.png"
+else
+    printf 'ImageMagick is required to build the authentic PWA icons.\n' >&2
+    exit 1
+fi
+"$framework_dir/scripts/install-browser-package.sh" "$dist_dir/shared-shell" copy
+
+printf '[Wolf4SDL WASM] Canonical browser package ready under %s\n' "$dist_dir"

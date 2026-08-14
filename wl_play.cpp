@@ -1280,6 +1280,9 @@ int32_t funnyticount;
 
 void PlayLoop (void)
 {
+#ifdef WOLF4SDL_WEB
+    WolfWasmRuntimeState = 2;
+#endif
 #if defined(USE_FEATUREFLAGS) && defined(USE_CLOUDSKY)
     if(GetFeatureFlags() & FF_CLOUDSKY)
         InitSky();
@@ -1369,4 +1372,7 @@ void PlayLoop (void)
 
     if (playstate != ex_died)
         FinishPaletteShifts ();
+#ifdef WOLF4SDL_WEB
+    WolfWasmRuntimeState = 1;
+#endif
 }

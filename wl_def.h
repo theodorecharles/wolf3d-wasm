@@ -915,6 +915,9 @@ extern  int      shootdelta;
 extern  unsigned screenofs;
 
 extern  boolean  startgame;
+#ifdef WOLF4SDL_WEB
+extern volatile int WolfWasmRuntimeState;
+#endif
 extern  char     str[80];
 extern  char     configdir[256];
 extern  char     configname[13];

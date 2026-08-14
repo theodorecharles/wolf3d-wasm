@@ -1,0 +1,70 @@
+{
+  "namespace": "wolf3d-registered",
+  "version": "steam-wl6-v1",
+  "files": [
+    {
+      "key": "audiohed.wl6",
+      "name": "AUDIOHED.WL6",
+      "names": ["AUDIOHED.WL6", "audiohed.wl6"],
+      "path": "wolf3d/AUDIOHED.WL6",
+      "size": 1156,
+      "sha256": "16e21eab17af2062019cc85cc271f887191301d1aa6de04b1afac5998aad9d9c"
+    },
+    {
+      "key": "audiot.wl6",
+      "name": "AUDIOT.WL6",
+      "names": ["AUDIOT.WL6", "audiot.wl6"],
+      "path": "wolf3d/AUDIOT.WL6",
+      "size": 320209,
+      "sha256": "2cc23cb811df16e656f1fea25cd2629859c1ec9997d35bc3b1776594094b67ef"
+    },
+    {
+      "key": "gamemaps.wl6",
+      "name": "GAMEMAPS.WL6",
+      "names": ["GAMEMAPS.WL6", "gamemaps.wl6"],
+      "path": "wolf3d/GAMEMAPS.WL6",
+      "size": 150652,
+      "sha256": "3df9f2ad54c601e79ab117c8175477b5d96571ba9e290cb9cd7d910abfeaae56"
+    },
+    {
+      "key": "maphead.wl6",
+      "name": "MAPHEAD.WL6",
+      "names": ["MAPHEAD.WL6", "maphead.wl6"],
+      "path": "wolf3d/MAPHEAD.WL6",
+      "size": 402,
+      "sha256": "289e04f47128a5ba19f9b3f912b4048e26dc16c6fa00205ead51efb1d8e23c69"
+    },
+    {
+      "key": "vgadict.wl6",
+      "name": "VGADICT.WL6",
+      "names": ["VGADICT.WL6", "vgadict.wl6"],
+      "path": "wolf3d/VGADICT.WL6",
+      "size": 1024,
+      "sha256": "114f66d40e16f19f6866a30378178b7b85f26f02f948b85e91d9dc4d07a3a63e"
+    },
+    {
+      "key": "vgagraph.wl6",
+      "name": "VGAGRAPH.WL6",
+      "names": ["VGAGRAPH.WL6", "vgagraph.wl6"],
+      "path": "wolf3d/VGAGRAPH.WL6",
+      "size": 275774,
+      "sha256": "26b4bd0a79c757a48c9c6bf943d82d4a6afbda341ee68eeedf532470e79a7f5b"
+    },
+    {
+      "key": "vgahead.wl6",
+      "name": "VGAHEAD.WL6",
+      "names": ["VGAHEAD.WL6", "vgahead.wl6"],
+      "path": "wolf3d/VGAHEAD.WL6",
+      "size": 450,
+      "sha256": "4ba3b8faedce7de2f0a9928affeaae45b3faefea6893d411f079d3ca1e8afa0b"
+    },
+    {
+      "key": "vswap.wl6",
+      "name": "VSWAP.WL6",
+      "names": ["VSWAP.WL6", "vswap.wl6"],
+      "path": "wolf3d/VSWAP.WL6",
+      "size": 1544376,
+      "sha256": "175f3acb81cbc10297223e8916c1b90c5a0db0cf1d1d55732629624906aff083"
+    }
+  ]
+}

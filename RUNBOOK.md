@@ -11,8 +11,10 @@ Never submit work upstream. Never commit, upload, or package retail data.
 ## Current checkpoint
 
 `./build-web.sh` produces an assetless SDL1/Emscripten client in
-`build-web/dist/`. The launcher accepts the eight full-version `.WL6` files
-from the owner's browser, mounts them under `/game`, and starts the native
+`build-web/dist/`. Framework 0.6.1 owns the canonical launcher, exact
+container provisioning, browser IndexedDB cache, 4:3 canvas, input capture,
+fullscreen preference, and PWA installation metadata. The adapter mounts the
+eight validated full-version `.WL6` files under `/game` and starts the native
 engine only after all are present. The browser target uses an in-process SDL1
 PCM mixer for digitized effects plus the native software OPL callback for
 music; it no longer depends on unavailable SDL_mixer browser binaries. The
@@ -28,9 +30,10 @@ Build and serve:
 ```
 
 Steam completed the Wolfenstein 3D install during the 2026-08-14 checkpoint.
-The portfolio Docker lab stages the registered data outside Git and exposes it
-only through its loopback-only, read-only `/local-data/` mount. Opening
-`/?localdata=1` now loads all eight files automatically; Chrome confirmed the
+The portfolio Docker lab stages the registered data outside Git. The framework
+server exposes only exact validated files through `/game-data/files/<key>`;
+`/data` remains private. Each browser caches those files once in IndexedDB.
+Chrome previously confirmed the
 exact data-ready state, rendered the authentic Options/main menu, accepted
 keyboard selection, and launched Episode 1 into a rendered playable level.
 The browser path keeps the native palette-indexed renderer: Emscripten SDL1

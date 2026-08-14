@@ -21,8 +21,8 @@ ifeq ($(WEB),1)
     LDFLAGS += -s FORCE_FILESYSTEM=1
     LDFLAGS += -s INVOKE_RUN=0
     LDFLAGS += -s EXIT_RUNTIME=0
+    LDFLAGS += -s EXPORTED_FUNCTIONS=_main,_WolfWasm_BrowserRuntimeState,_WolfWasm_BrowserSetInputCaptured,_WolfWasm_BrowserOpenMenu
     LDFLAGS += -s EXPORTED_RUNTIME_METHODS=FS,callMain
-    LDFLAGS += --shell-file web/shell.html
 endif
 
 INSTALL         ?= install
