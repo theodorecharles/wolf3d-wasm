@@ -167,6 +167,7 @@ extern	const char *IN_GetScanName(ScanCode);
 
 void    IN_WaitAndProcessEvents();
 void    IN_ProcessEvents();
+void    IN_GetMouseDelta(int *dx, int *dy);
 
 int     IN_MouseButtons (void);
 

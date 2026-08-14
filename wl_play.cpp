@@ -211,7 +211,7 @@ int songs[] = {
     XFUNKIE_MUS,
     XDEATH_MUS,
     XGETYOU_MUS,                // DON'T KNOW
-    ULTIMATE_MUS,               // Trans Gr”sse
+    ULTIMATE_MUS,               // Trans Groesse
 
     DUNGEON_MUS,
     GOINGAFT_MUS,
@@ -317,6 +317,18 @@ void PollKeyboardMove (void)
 {
     int delta = buttonstate[bt_run] ? RUNMOVE * tics : BASEMOVE * tics;
 
+#ifdef WOLF4SDL_WEB
+    // Modern browser defaults while preserving the original arrow keys.
+    if (Keyboard[sc_W])
+        controly -= delta;
+    if (Keyboard[sc_S])
+        controly += delta;
+    if (Keyboard[sc_A])
+        buttonstate[bt_strafeleft] = true;
+    if (Keyboard[sc_D])
+        buttonstate[bt_straferight] = true;
+#endif
+
     if (Keyboard[dirscan[di_north]])
         controly -= delta;
     if (Keyboard[dirscan[di_south]])
@@ -340,6 +352,12 @@ void PollMouseMove (void)
 {
     int mousexmove, mouseymove;
 
+#ifdef WOLF4SDL_WEB
+    IN_GetMouseDelta(&mousexmove, &mouseymove);
+    controlx += mousexmove * 10 / (13 - mouseadjustment);
+    (void) mouseymove; // Wolf3D has no vertical view axis.
+    return;
+#else
     SDL_GetMouseState(&mousexmove, &mouseymove);
     if(IN_IsInputGrabbed())
         IN_CenterMouse();
@@ -349,6 +367,7 @@ void PollMouseMove (void)
 
     controlx += mousexmove * 10 / (13 - mouseadjustment);
     controly += mouseymove * 20 / (13 - mouseadjustment);
+#endif
 }
 
 

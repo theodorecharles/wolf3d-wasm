@@ -62,6 +62,10 @@ static int JoyNumHats;
 
 static bool GrabInput = false;
 static bool NeedRestore = false;
+#ifdef WOLF4SDL_WEB
+static int WebMouseDeltaX = 0;
+static int WebMouseDeltaY = 0;
+#endif
 
 /*
 =============================================================================
@@ -344,7 +348,15 @@ static void processEvent(SDL_Event *event)
                 }
                 else NeedRestore = true;
             }
+            break;
         }
+
+#ifdef WOLF4SDL_WEB
+        case SDL_MOUSEMOTION:
+            WebMouseDeltaX += event->motion.xrel;
+            WebMouseDeltaY += event->motion.yrel;
+            break;
+#endif
 
 #if defined(GP2X)
         case SDL_JOYBUTTONDOWN:
@@ -356,6 +368,21 @@ static void processEvent(SDL_Event *event)
             break;
 #endif
     }
+}
+
+void IN_GetMouseDelta(int *dx, int *dy)
+{
+#ifdef WOLF4SDL_WEB
+    *dx = WebMouseDeltaX;
+    *dy = WebMouseDeltaY;
+    WebMouseDeltaX = 0;
+    WebMouseDeltaY = 0;
+#else
+    int x, y;
+    SDL_GetMouseState(&x, &y);
+    *dx = x - screenWidth / 2;
+    *dy = y - screenHeight / 2;
+#endif
 }
 
 void IN_WaitAndProcessEvents()

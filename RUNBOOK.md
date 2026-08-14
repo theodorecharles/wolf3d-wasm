@@ -13,7 +13,10 @@ Never submit work upstream. Never commit, upload, or package retail data.
 `./build-web.sh` produces an assetless SDL1/Emscripten client in
 `build-web/dist/`. The launcher accepts the eight full-version `.WL6` files
 from the owner's browser, mounts them under `/game`, and starts the native
-engine only after all are present. Audio is temporarily stubbed. The original
+engine only after all are present. The browser target uses an in-process SDL1
+PCM mixer for digitized effects plus the native software OPL callback for
+music; it no longer depends on unavailable SDL_mixer browser binaries. The
+original
 blocking loop runs on an Emscripten pthread while SDL presentation is proxied
 to the browser thread, keeping the page responsive without Asyncify.
 
@@ -33,8 +36,10 @@ keyboard selection, and launched Episode 1 into a rendered playable level.
 The browser path keeps the native palette-indexed renderer: Emscripten SDL1
 palette surfaces are copied and unlocked explicitly so its canvas layer expands
 the 8-bit frame into RGBA. No alternate renderer or existing WASM port is used.
-Mouse capture, sound, save persistence, sustained movement, and the Spear of
-Destiny data path still need their dedicated passes. The required owner files are `AUDIOHED.WL6`,
+The web input policy maps W/S to forward/back, A/D to strafe, and accumulated
+relative mouse X to turning while deliberately discarding mouse Y because the
+game has no vertical view axis. Save persistence and the Spear of Destiny data
+path still need their dedicated passes. The required owner files are `AUDIOHED.WL6`,
 `AUDIOT.WL6`, `GAMEMAPS.WL6`, `MAPHEAD.WL6`, `VGADICT.WL6`, `VGAGRAPH.WL6`,
 `VGAHEAD.WL6`, and `VSWAP.WL6`.
 

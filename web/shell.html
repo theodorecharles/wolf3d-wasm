@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Wolfenstein 3D — WebAssembly</title>
+  <link rel="stylesheet" href="/shared-shell/wolfwasm-shell.css">
   <style>
     :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #111; color: #eee; }
     body { margin: 0 auto; max-width: 76rem; padding: 1.5rem; }
@@ -15,15 +16,20 @@
   </style>
 </head>
 <body>
-  <section id="launcher">
+  <section id="launcher" data-shell-launcher>
+    <div data-shell-card>
     <h1>Wolfenstein 3D</h1>
     <p>Select the folder containing your legally acquired full Wolfenstein 3D data files. They stay in this browser tab and are never uploaded.</p>
     <div id="drop">Drop the Wolfenstein 3D folder here</div>
     <p><label>or choose the folder <input id="picker" type="file" multiple webkitdirectory></label></p>
     <pre id="status">Waiting for the eight .WL6 data files.</pre>
     <button id="play" type="button" disabled>Play Wolfenstein 3D</button>
+    </div>
   </section>
-  <canvas id="canvas" tabindex="0" width="960" height="720"></canvas>
+  <section id="runtime" data-shell-runtime hidden>
+    <canvas id="canvas" data-shell-canvas tabindex="0" width="960" height="720"></canvas>
+  </section>
+  <script src="/shared-shell/wolfwasm-shell.js"></script>
   <script>
     const required = ["audiohed.wl6", "audiot.wl6", "gamemaps.wl6", "maphead.wl6", "vgadict.wl6", "vgagraph.wl6", "vgahead.wl6", "vswap.wl6"];
     const selected = new Map();
@@ -31,6 +37,18 @@
     const play = document.querySelector("#play");
     const canvas = document.querySelector("#canvas");
     const launcher = document.querySelector("#launcher");
+    const shell = WolfWasmShell.configure({
+      launcher,
+      card: '[data-shell-card]',
+      runtime: '#runtime',
+      canvas,
+      aspect: 4 / 3,
+      fit: 'contain',
+      pixelated: true,
+      graphics: false,
+      identity: false,
+      advanced: false
+    });
 
     function acceptFiles(files) {
       selected.clear();
@@ -94,11 +112,17 @@
         FS.writeFile(`/game/${name}`, new Uint8Array(await selected.get(name).arrayBuffer()));
       }
       FS.chdir("/game");
-      launcher.hidden = true;
-      canvas.style.display = "block";
+      shell.showRuntime();
       canvas.focus();
       console.log("[Wolf4SDL WASM] Starting native Wolf4SDL engine");
-      Module.callMain([]);
+      Module.callMain(["--windowed-mouse", "--res", "960", "720"]);
+    });
+    canvas.addEventListener("click", () => {
+      canvas.focus();
+      try {
+        const request = canvas.requestPointerLock?.();
+        if (request?.catch) request.catch(() => {});
+      } catch (_) {}
     });
   </script>
   {{{ SCRIPT }}}

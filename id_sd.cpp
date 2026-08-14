@@ -29,6 +29,7 @@
 
 #include "wl_def.h"
 #ifdef WOLF4SDL_WEB
+#include <emscripten/em_asm.h>
 #include "web/sdl_mixer_stub.h"
 #else
 #include <SDL_mixer.h>
@@ -1126,6 +1127,21 @@ SD_Startup(void)
         printf("Unable to open audio: %s\n", Mix_GetError());
         return;
     }
+#ifdef WOLF4SDL_WEB
+    printf("[Wolf4SDL WASM] SDL PCM/OPL audio mixer opened at %d Hz\n", param_samplerate);
+    MAIN_THREAD_ASYNC_EM_ASM({
+        const context = typeof SDL !== 'undefined' ? SDL.audioContext : null;
+        const publishState = () => {
+            document.documentElement.dataset.wolfAudio = context ? context.state : 'opened';
+        };
+        publishState();
+        if (context && context.state === 'suspended') {
+            const resume = () => context.resume().then(publishState, publishState);
+            document.addEventListener('pointerdown', resume, { once: true, capture: true });
+            document.addEventListener('keydown', resume, { once: true, capture: true });
+        }
+    });
+#endif
 
     Mix_ReserveChannels(2);  // reserve player and boss weapon channels
     Mix_GroupChannels(2, MIX_CHANNELS-1, 1); // group remaining channels
@@ -1182,6 +1198,8 @@ SD_Shutdown(void)
     }
 
     free(DigiList);
+
+    Mix_CloseAudio();
 
     SD_Started = false;
 }
