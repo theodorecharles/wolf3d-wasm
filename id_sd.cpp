@@ -28,7 +28,11 @@
 //
 
 #include "wl_def.h"
+#ifdef WOLF4SDL_WEB
+#include "web/sdl_mixer_stub.h"
+#else
 #include <SDL_mixer.h>
+#endif
 #if defined(GP2X_940)
 #include "gp2x/fmopl.h"
 #else

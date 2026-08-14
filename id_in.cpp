@@ -361,7 +361,11 @@ static void processEvent(SDL_Event *event)
 void IN_WaitAndProcessEvents()
 {
     SDL_Event event;
+#ifdef WOLF4SDL_WEB
+    if(!SDL_PollEvent(&event)) return;
+#else
     if(!SDL_WaitEvent(&event)) return;
+#endif
     do
     {
         processEvent(&event);
@@ -406,7 +410,9 @@ IN_Startup(void)
         }
     }
 
+#ifndef WOLF4SDL_WEB
     SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
+#endif
 
     if(fullscreen || forcegrabmouse)
     {

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Wolfenstein 3D — WebAssembly</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    body { margin: 0 auto; max-width: 76rem; padding: 1.5rem; }
+    #launcher { max-width: 46rem; margin: 2rem auto; }
+    #drop { border: 1px dashed #999; padding: 1.5rem; text-align: center; }
+    #status { min-height: 3rem; white-space: pre-wrap; }
+    canvas { display: none; width: 100%; max-height: calc(100vh - 3rem); aspect-ratio: 4 / 3; background: #000; image-rendering: pixelated; }
+    button, input { font: inherit; }
+  </style>
+</head>
+<body>
+  <section id="launcher">
+    <h1>Wolfenstein 3D</h1>
+    <p>Select the folder containing your legally acquired full Wolfenstein 3D data files. They stay in this browser tab and are never uploaded.</p>
+    <div id="drop">Drop the Wolfenstein 3D folder here</div>
+    <p><label>or choose the folder <input id="picker" type="file" multiple webkitdirectory></label></p>
+    <pre id="status">Waiting for the eight .WL6 data files.</pre>
+    <button id="play" type="button" disabled>Play Wolfenstein 3D</button>
+  </section>
+  <canvas id="canvas" tabindex="0" width="960" height="720"></canvas>
+  <script>
+    const required = ["audiohed.wl6", "audiot.wl6", "gamemaps.wl6", "maphead.wl6", "vgadict.wl6", "vgagraph.wl6", "vgahead.wl6", "vswap.wl6"];
+    const selected = new Map();
+    const status = document.querySelector("#status");
+    const play = document.querySelector("#play");
+    const canvas = document.querySelector("#canvas");
+    const launcher = document.querySelector("#launcher");
+
+    function acceptFiles(files) {
+      selected.clear();
+      for (const file of files) {
+        const name = file.name.toLowerCase();
+        if (required.includes(name) && file.size > 0) selected.set(name, file);
+      }
+      const missing = required.filter((name) => !selected.has(name));
+      status.textContent = missing.length ? `Missing: ${missing.join(", ")}` : "Ready. All required .WL6 files are present.";
+      play.disabled = missing.length !== 0 || !runtimeReady;
+    }
+
+    document.querySelector("#picker").addEventListener("change", (event) => acceptFiles(event.target.files));
+    const drop = document.querySelector("#drop");
+    drop.addEventListener("dragover", (event) => { event.preventDefault(); });
+    drop.addEventListener("drop", (event) => { event.preventDefault(); acceptFiles(event.dataTransfer.files); });
+
+    let runtimeReady = false;
+    var Module = {
+      noInitialRun: true,
+      canvas,
+      print: (text) => console.log(`[Wolf4SDL WASM] ${text}`),
+      printErr: (text) => console.error(`[Wolf4SDL WASM] ${text}`),
+      onRuntimeInitialized() {
+        runtimeReady = true;
+        play.disabled = required.some((name) => !selected.has(name));
+        console.log("[Wolf4SDL WASM] Runtime initialized; waiting for owner data");
+      }
+    };
+
+    play.addEventListener("click", async () => {
+      play.disabled = true;
+      status.textContent = "Preparing owner data…";
+      try { FS.mkdir("/game"); } catch (_) {}
+      for (const name of required) {
+        FS.writeFile(`/game/${name}`, new Uint8Array(await selected.get(name).arrayBuffer()));
+      }
+      FS.chdir("/game");
+      launcher.hidden = true;
+      canvas.style.display = "block";
+      canvas.focus();
+      console.log("[Wolf4SDL WASM] Starting native Wolf4SDL engine");
+      Module.callMain([]);
+    });
+  </script>
+  {{{ SCRIPT }}}
+</body>
+</html>

@@ -6,6 +6,22 @@ BINARY    ?= wolf3d
 PREFIX    ?= /usr/local
 MANPREFIX ?= $(PREFIX)
 
+WEB ?= 0
+
+ifeq ($(WEB),1)
+    CFLAGS += -DWOLF4SDL_WEB
+    CXXFLAGS += -Wno-c++11-narrowing
+    CFLAGS_SDL ?= -s USE_SDL=1
+    LDFLAGS_SDL ?= -s USE_SDL=1
+    LDFLAGS += -s ALLOW_MEMORY_GROWTH=1
+    LDFLAGS += -s ASYNCIFY=1
+    LDFLAGS += -s FORCE_FILESYSTEM=1
+    LDFLAGS += -s INVOKE_RUN=0
+    LDFLAGS += -s EXIT_RUNTIME=0
+    LDFLAGS += -s EXPORTED_RUNTIME_METHODS=FS,callMain
+    LDFLAGS += --shell-file web/shell.html
+endif
+
 INSTALL         ?= install
 INSTALL_PROGRAM ?= $(INSTALL) -m 555 -s
 INSTALL_MAN     ?= $(INSTALL) -m 444
@@ -40,7 +56,9 @@ CCFLAGS += -Wsequence-point
 CXXFLAGS += $(CFLAGS)
 
 LDFLAGS += $(LDFLAGS_SDL)
+ifeq ($(WEB),0)
 LDFLAGS += -lSDL_mixer
+endif
 ifneq (,$(findstring MINGW,$(shell uname -s)))
 LDFLAGS += -static-libgcc
 endif
