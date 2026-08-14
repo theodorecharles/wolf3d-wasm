@@ -2,7 +2,7 @@
   "id": "wolf3d",
   "title": "Wolfenstein 3D",
   "kicker": "Wolf4SDL",
-  "description": "Escape Castle Wolfenstein in the original registered game with modern browser controls.",
+  "description": "Escape Castle Wolfenstein with the original presentation and modern browser controls.",
   "loadingTitle": "Starting Wolfenstein 3D…",
   "icon": "/wolf3d.ico",
   "iconPixelated": true,
@@ -27,7 +27,7 @@
   "graphics": false,
   "fullscreen": true,
   "preferencesNamespace": "wolf3d",
-  "provisioningText": "Install the eight registered Wolfenstein 3D .WL6 files into this container once.",
+  "provisioningText": "Select the eight required Wolfenstein 3D .WL6 files. Matching files are cached in this browser after exact validation.",
   "theme": {
     "accent": "#8f1515",
     "accent-strong": "#f0b34b",

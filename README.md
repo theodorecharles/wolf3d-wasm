@@ -15,9 +15,9 @@ engine adaptation, declarative game policy, and source-distributed artwork.
 | Wolfenstein 3D | Still in development |
 | Spear of Destiny | Still in development |
 
-Wolfenstein 3D reaches its authentic menu and a playable registered level in
-Chromium. The current data policy supports the registered `.WL6` release.
-Spear of Destiny has not yet been added to the launcher or owner-data policy.
+Wolfenstein 3D reaches its authentic menu and a playable level in Chromium.
+The current data policy supports the `.WL6` release. Spear of Destiny has not
+yet been added to the launcher or game-data policy.
 
 ## Controls and presentation
 
@@ -32,7 +32,7 @@ Spear of Destiny has not yet been added to the launcher or owner-data policy.
 ## Game data
 
 No Wolfenstein 3D data files are committed to Git or copied into the Docker
-image. On first deployment, upload the eight registered `.WL6` files through
+image. On first deployment, select the eight required `.WL6` files through
 the framework provisioner. They are checked against the exact filename, size,
 and SHA-256 policy in `web/wasm-game-data.json` before being stored atomically
 in the container's persistent `/data` volume.
@@ -49,7 +49,7 @@ Emscripten SDK.
 ```bash
 git clone https://github.com/theodorecharles/wolf3d-wasm.git
 git clone https://github.com/theodorecharles/wasm-game-framework.git ../wasm-game-framework
-git -C ../wasm-game-framework checkout v0.7.0
+git -C ../wasm-game-framework checkout v0.7.1
 
 cd wolf3d-wasm
 EMSDK_DIR=/path/to/emsdk ./build-web.sh
@@ -77,5 +77,5 @@ code and framework assets only.
 ## Contributing
 
 Read [RUNBOOK.md](RUNBOOK.md) before changing native browser seams. Preserve
-the owner-data boundary and native builds where practical. Do not submit this
+the game-data boundary and native builds where practical. Do not submit this
 WebAssembly port or its patches to the upstream Wolf4SDL project.

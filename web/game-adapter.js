@@ -42,7 +42,7 @@
           ctx.showRuntime('crashed');
           reject(new Error(`Wolfenstein 3D stopped: ${reason}`));
         },
-        setStatus: message => { if (message) ctx.setLoading(String(message)); },
+        setStatus: message => { if (message) ctx.setLoading('Loading Wolfenstein 3D engine…'); },
         monitorRunDependencies: remaining => {
           if (remaining) ctx.setLoading('Loading Wolfenstein 3D engine…', `${remaining} dependencies remaining`);
         },
@@ -74,7 +74,7 @@
           ...spec,
           mountName: spec.name,
           validate: async file => {
-            ctx.setLoading(`Verifying ${spec.name}…`);
+            ctx.setLoading('Preparing Wolfenstein 3D…');
             if (await sha256Hex(file) !== spec.sha256) throw new Error(`${spec.name} failed SHA-256 verification.`);
           }
         }))
@@ -85,27 +85,27 @@
     async start(ctx) {
       if (started) return;
       void ctx.shell.resumeAudio();
-      ctx.setLoading('Restoring registered Wolfenstein 3D data…', '', 5);
+      ctx.setLoading('Preparing Wolfenstein 3D…', '', 5);
       const data = await ctx.dataClient.load(ownerData, {
         onProgress(detail) {
-          if (detail.phase === 'checking-cache') ctx.setLoading(`Checking ${detail.key}…`);
+          if (detail.phase === 'checking-cache') ctx.setLoading('Preparing Wolfenstein 3D…');
           if (detail.phase === 'downloading') {
             const percent = detail.total ? Math.floor(detail.received * 100 / detail.total) : 0;
-            ctx.setLoading(`Caching ${detail.key} from this container…`, `${percent}%`, Math.min(55, 5 + percent / 2));
+            ctx.setLoading('Preparing Wolfenstein 3D…', `${percent}%`, Math.min(55, 5 + percent / 2));
           }
-          if (detail.phase === 'restored') ctx.setLoading(`Restored ${detail.key} from this browser…`);
+          if (detail.phase === 'restored') ctx.setLoading('Preparing Wolfenstein 3D…');
         }
       });
       document.documentElement.dataset.wasmDataSource = data.entries.every(entry => entry.cached) ? 'cache' : 'container';
       ctx.setLoading('Loading Wolfenstein 3D engine…', '', 60);
       await loadEngine(ctx);
-      ctx.setLoading('Mounting registered game data…', '', 75);
+      ctx.setLoading('Preparing Wolfenstein 3D…', '', 75);
       await ctx.framework.mountOwnerFiles(engine, data, {
         root: '/game',
         mode: 'memfs',
         onProgress(detail) {
           if (detail.phase === 'mounting' && detail.total) {
-            ctx.setLoading('Mounting registered game data…', `${Math.floor(detail.copied * 100 / detail.total)}%`,
+            ctx.setLoading('Preparing Wolfenstein 3D…', `${Math.floor(detail.copied * 100 / detail.total)}%`,
               75 + detail.copied * 20 / detail.total);
           }
         }

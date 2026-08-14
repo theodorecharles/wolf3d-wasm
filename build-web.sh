@@ -4,6 +4,16 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dist_dir="$repo_dir/build-web/dist"
 framework_dir="${WASM_FRAMEWORK_DIR:-$repo_dir/../wasm-game-framework}"
+required_framework_version="0.7.1"
+required_framework_commit="9359fb1"
+framework_version="$(node -p "require('$framework_dir/package.json').version")"
+framework_commit="$(git -C "$framework_dir" rev-parse --short=7 HEAD)"
+
+if [[ "$framework_version" != "$required_framework_version" || "$framework_commit" != "$required_framework_commit" ]]; then
+    printf 'Wolf3D WASM requires wasm-game-framework %s at %s; found %s at %s.\n' \
+        "$required_framework_version" "$required_framework_commit" "$framework_version" "$framework_commit" >&2
+    exit 1
+fi
 
 if ! command -v emcc >/dev/null 2>&1; then
     emsdk_dir="${EMSDK_DIR:-${EMSDK:-}}"
@@ -44,4 +54,4 @@ else
 fi
 "$framework_dir/scripts/install-browser-package.sh" "$dist_dir/shared-shell" copy
 
-printf '[Wolf4SDL WASM] Canonical browser package ready under %s\n' "$dist_dir"
+printf '[Wolf4SDL WASM] Canonical browser package %s ready under %s\n' "$required_framework_version" "$dist_dir"
