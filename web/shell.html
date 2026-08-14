@@ -43,10 +43,29 @@
       play.disabled = missing.length !== 0 || !runtimeReady;
     }
 
+    async function loadLoopbackData() {
+      status.textContent = "Loading your installed Wolfenstein 3D data…";
+      const files = [];
+      for (const name of required) {
+        const response = await fetch(`/local-data/${encodeURIComponent(name.toUpperCase())}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
+        files.push(new File([await response.blob()], name, { lastModified: 0 }));
+      }
+      acceptFiles(files);
+    }
+
     document.querySelector("#picker").addEventListener("change", (event) => acceptFiles(event.target.files));
     const drop = document.querySelector("#drop");
     drop.addEventListener("dragover", (event) => { event.preventDefault(); });
     drop.addEventListener("drop", (event) => { event.preventDefault(); acceptFiles(event.dataTransfer.files); });
+
+    if (new URLSearchParams(location.search).get("localdata") === "1") {
+      document.querySelector("#picker").closest("p").hidden = true;
+      drop.textContent = "Installed owner data will be loaded automatically.";
+      loadLoopbackData().catch((error) => {
+        status.textContent = `Could not load installed data: ${error.message}`;
+      });
+    }
 
     let runtimeReady = false;
     var Module = {

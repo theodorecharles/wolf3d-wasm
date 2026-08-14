@@ -24,8 +24,12 @@ Build and serve:
 ./serve-web.sh 8011
 ```
 
-The local Steam libraries did not contain Wolfenstein 3D data during the
-2026-08-14 checkpoint, so only the assetless launcher/runtime-initialization
-state can be tested in Chrome. Manual gameplay testing requires owner-provided
-`AUDIOHED.WL6`, `AUDIOT.WL6`, `GAMEMAPS.WL6`, `MAPHEAD.WL6`, `VGADICT.WL6`,
-`VGAGRAPH.WL6`, `VGAHEAD.WL6`, and `VSWAP.WL6`.
+Steam completed the Wolfenstein 3D install during the 2026-08-14 checkpoint.
+The portfolio Docker lab stages the registered data outside Git and exposes it
+only through its loopback-only, read-only `/local-data/` mount. Opening
+`/?localdata=1` now loads all eight files automatically; Chrome confirmed the
+exact data-ready state and invoked the engine. A deeper visual/input pass is
+still required because the current Asyncify loop prevents clean automation
+inspection after startup. The required owner files are `AUDIOHED.WL6`,
+`AUDIOT.WL6`, `GAMEMAPS.WL6`, `MAPHEAD.WL6`, `VGADICT.WL6`, `VGAGRAPH.WL6`,
+`VGAHEAD.WL6`, and `VSWAP.WL6`.
