@@ -11,8 +11,8 @@ Never submit work upstream. Never commit, upload, or package game data.
 ## Current checkpoint
 
 `./build-web.sh` produces an assetless SDL1/Emscripten client in
-`build-web/dist/`. Framework 0.7.2 at
-`e4b78d6a1ab9992f35c0a098d60f15d8e1c3e89b` owns the canonical launcher, exact
+`build-web/dist/`. Framework 0.7.3 at
+`be0b81301c5f12f09e445a3bc765b7709603265e` owns the canonical launcher, exact
 container provisioning, browser IndexedDB cache, 4:3 canvas, input capture,
 fullscreen preference, and PWA installation metadata. The adapter mounts the
 eight validated full-version `.WL6` files under `/game` and starts the native
@@ -56,3 +56,8 @@ Chromium evidence from 2026-08-14:
    game artwork and palette.
 4. Enter navigation launched Episode 1, Floor 1 with the HUD and 3D scene
    visible. The current launch emitted no new browser runtime errors.
+
+The reported missing weapon and enemy effects remain open for the next
+serialized Chromium pass even though music, item pickup, and door behavior
+were previously observed. Static mixer and state hooks do not establish those
+effect channels.

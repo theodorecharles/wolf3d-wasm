@@ -51,7 +51,11 @@ unsigned tics;
 // control info
 //
 boolean mouseenabled, joystickenabled;
+#ifdef WOLF4SDL_WEB
+int dirscan[4] = { sc_W, sc_D, sc_S, sc_A };
+#else
 int dirscan[4] = { sc_UpArrow, sc_RightArrow, sc_DownArrow, sc_LeftArrow };
+#endif
 int buttonscan[NUMBUTTONS] = { sc_Control, sc_Alt, sc_LShift, sc_Space, sc_1, sc_2, sc_3, sc_4 };
 int buttonmouse[4] = { bt_attack, bt_strafe, bt_use, bt_nobutton };
 int buttonjoy[32] = {
@@ -1373,6 +1377,7 @@ void PlayLoop (void)
     if (playstate != ex_died)
         FinishPaletteShifts ();
 #ifdef WOLF4SDL_WEB
-    WolfWasmRuntimeState = 1;
+    WolfWasmRuntimeState =
+        playstate == ex_completed || playstate == ex_secretlevel || playstate == ex_victorious ? 3 : 1;
 #endif
 }

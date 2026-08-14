@@ -397,7 +397,7 @@ US_ControlPanel (ScanCode scancode)
     int which;
 
 #ifdef WOLF4SDL_WEB
-    WolfWasmRuntimeState = 1;
+    WolfWasmRuntimeState = ingame ? 4 : 1;
 #endif
 
 #ifdef _arch_dreamcast
@@ -580,7 +580,9 @@ US_ControlPanel (ScanCode scancode)
     UnCacheLump (OPTIONS_LUMP_START, OPTIONS_LUMP_END);
 #endif
 #ifdef WOLF4SDL_WEB
-    if (ingame)
+    if (startgame || loadedgame)
+        WolfWasmRuntimeState = 5;
+    else if (ingame)
         WolfWasmRuntimeState = 2;
 #endif
 }

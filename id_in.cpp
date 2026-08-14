@@ -81,6 +81,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void WolfWasm_BrowserOpenMenu()
 {
     if (WolfWasmRuntimeState == 2)
     {
+        WolfWasmRuntimeState = 4;
         LastScan = sc_Escape;
         Keyboard[sc_Escape] = true;
     }

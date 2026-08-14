@@ -6,10 +6,27 @@
   let runtimePromise = null;
   let started = false;
   let stateTimer = 0;
+  let lastEscapeAt = 0;
 
   function nativeState() {
     if (!started || typeof engine?._WolfWasm_BrowserRuntimeState !== 'function') return 'menu';
-    return ['menu', 'menu', 'gameplay'][engine._WolfWasm_BrowserRuntimeState()] || 'menu';
+    return ['menu', 'menu', 'gameplay', 'debrief', 'paused', 'loading'][engine._WolfWasm_BrowserRuntimeState()] || 'menu';
+  }
+
+  function captureIntent() {
+    return Boolean(started && typeof engine?._WolfWasm_BrowserCaptureIntent === 'function' &&
+      engine._WolfWasm_BrowserCaptureIntent());
+  }
+
+  function synchronizeState(ctx, event, captureGameplay) {
+    const state = nativeState();
+    const shouldCapture = captureGameplay && (state === 'gameplay' || (state === 'loading' && captureIntent()));
+    if (ctx.shell.engineState() !== state || shouldCapture) {
+      ctx.setEngineState(state, shouldCapture
+        ? { capture: true, event }
+        : undefined);
+    }
+    return state;
   }
 
   function loadScript(source) {
@@ -57,7 +74,12 @@
     window.clearInterval(stateTimer);
     stateTimer = window.setInterval(() => {
       const state = nativeState();
-      if (ctx.shell.engineState() !== state) ctx.setEngineState(state);
+      if (ctx.shell.engineState() !== state) synchronizeState(ctx, null, false);
+      if (typeof engine?._WolfWasm_BrowserControlsMask === 'function') {
+        const mask = engine._WolfWasm_BrowserControlsMask();
+        document.documentElement.dataset.wolf3dControlsMask = String(mask);
+        document.documentElement.dataset.wolf3dControlsValid = String(mask === 31);
+      }
     }, 100);
   }
 
@@ -80,6 +102,13 @@
         }))
       });
       ctx.elements.canvas.addEventListener('contextmenu', event => event.preventDefault());
+      document.addEventListener('keyup', event => {
+        if (!started || (event.key !== 'Enter' && event.key !== 'Escape')) return;
+        queueMicrotask(() => synchronizeState(ctx, event, true));
+      });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') lastEscapeAt = performance.now();
+      }, true);
     },
 
     async start(ctx) {
@@ -120,8 +149,11 @@
     },
 
     readEngineState() { return nativeState(); },
-    captureLost() {
-      if (started && typeof engine?._WolfWasm_BrowserOpenMenu === 'function') engine._WolfWasm_BrowserOpenMenu();
+    readCaptureIntent() { return captureIntent(); },
+    captureLost(_detail, ctx) {
+      if (started && performance.now() - lastEscapeAt > 750 &&
+          typeof engine?._WolfWasm_BrowserOpenMenu === 'function') engine._WolfWasm_BrowserOpenMenu();
+      if (started) synchronizeState(ctx, null, false);
     },
     inputCaptureChanged(captured) {
       if (started && typeof engine?._WolfWasm_BrowserSetInputCaptured === 'function') {

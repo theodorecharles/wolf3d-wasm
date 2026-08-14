@@ -80,6 +80,22 @@ extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserRuntimeState()
 {
     return WolfWasmRuntimeState;
 }
+
+extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserCaptureIntent()
+{
+    return WolfWasmRuntimeState == 5;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserControlsMask()
+{
+    int mask = 0;
+    if (dirscan[di_north] == sc_W) mask |= 1;
+    if (dirscan[di_south] == sc_S) mask |= 2;
+    if (dirscan[di_west] == sc_A) mask |= 4;
+    if (dirscan[di_east] == sc_D) mask |= 8;
+    if (mouseenabled) mask |= 16;
+    return mask;
+}
 #endif
 
 char    configdir[256] = "";

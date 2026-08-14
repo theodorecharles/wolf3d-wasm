@@ -47,15 +47,17 @@ const m=JSON.parse(fs.readFileSync(process.argv[2]));
 const p=JSON.parse(fs.readFileSync(process.argv[3]));
 if(c.id!=="wolf3d"||c.displayMode!=="4:3"||c.graphics!==false||c.identity!==false||c.fullscreen!==true)process.exit(1);
 if(!c.pwa||c.pwa.icons.length!==2||m.namespace!=="wolf3d-registered"||m.files.length!==8||m.files.some(f=>!f.sha256))process.exit(1);
-if(p.package!=="@wasm-game-framework/browser"||p.version!=="0.7.2"||!p.bootstrapSha256)process.exit(1);
+if(p.package!=="@wasm-game-framework/browser"||p.version!=="0.7.3"||!p.bootstrapSha256)process.exit(1);
 ' "$dist_dir/wasm-game.json" "$dist_dir/wasm-game-data.json" "$dist_dir/shared-shell/wasm-game-framework.json"
 
 node --check "$dist_dir/wolf3d.js"
 node --check "$dist_dir/game-adapter.js"
 node --check "$dist_dir/shared-shell/wasm-game-framework.js"
 node --check "$dist_dir/shared-shell/wasm-game-bootstrap.js"
+node "$repo_dir/scripts/test-adapter-contract.js"
+node "$framework_dir/scripts/check-game-package.js" "$dist_dir"
 cmp "$repo_dir/web/game-adapter.js" "$dist_dir/game-adapter.js"
 cmp "$repo_dir/web/wasm-game.json" "$dist_dir/wasm-game.json"
 cmp "$framework_dir/dist/wasm-game-framework.js" "$dist_dir/shared-shell/wasm-game-framework.js"
 file "$dist_dir/wolf3d.wasm"
-printf 'Static Wolfenstein 3D web build passed framework 0.7.2 and game-data boundary checks.\n'
+printf 'Static Wolfenstein 3D web build passed framework 0.7.3 and game-data boundary checks.\n'
