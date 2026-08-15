@@ -11,16 +11,13 @@
   "pixelated": true,
   "syncBackbuffer": false,
   "pointerLock": true,
+  "menuCursor": "none",
   "identity": false,
   "advanced": false,
   "graphics": false,
   "fullscreen": true,
   "controller": {
-    "mode": "wasdMouse",
-    "label": "WASD + mouse mapping",
-    "moveDeadzone": 0.18,
-    "lookDeadzone": 0.14,
-    "lookSensitivity": 1.15
+    "mode": "disabled"
   },
   "persistence": {
     "root": "/persistent/wolf4sdl/{variant}",

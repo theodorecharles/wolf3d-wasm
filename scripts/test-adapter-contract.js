@@ -22,6 +22,7 @@ const repo = path.resolve(__dirname, '..');
 const testVariant = process.env.WOLF4SDL_TEST_VARIANT;
 const makefile = fs.readFileSync(path.join(repo, 'Makefile'), 'utf8');
 const config = JSON.parse(fs.readFileSync(path.join(repo, 'web/wasm-game.json'), 'utf8'));
+assert.equal(config.menuCursor, 'none');
 const dataManifest = JSON.parse(fs.readFileSync(path.join(repo, 'web/wasm-game-data.json'), 'utf8'));
 const selectedConfig = { ...config, ...config.variants[testVariant] };
 const selectedDataManifest = dataManifest.variants[testVariant];
@@ -142,7 +143,7 @@ const context = {
 
 (async () => {
   assert.equal(selectedConfig.fullscreen, true);
-  assert.equal(selectedConfig.controller.mode, 'wasdMouse');
+  assert.equal(selectedConfig.controller.mode, 'disabled');
   assert.equal(selectedConfig.persistence.root, '/persistent/wolf4sdl/{variant}');
   assert.equal(selectedConfig.identity, false);
   assert.equal(selectedConfig.graphics, false);
@@ -153,7 +154,16 @@ const context = {
   assert.ok(selectedDataManifest.files.every(file => file.sha256));
 
   const playSource = fs.readFileSync(path.join(repo, 'wl_play.cpp'), 'utf8');
-  assert.match(playSource, /WOLF4SDL_WEB[\s\S]*dirscan\[4\] = \{ sc_W, sc_D, sc_S, sc_A \}/);
+  assert.match(playSource, /dirscan\[4\] = \{ sc_UpArrow, sc_RightArrow, sc_DownArrow, sc_LeftArrow \}/);
+  assert.match(playSource,
+    /WOLF4SDL_WEB[\s\S]*Keyboard\[sc_W\][\s\S]*Keyboard\[sc_A\][\s\S]*bt_strafeleft/,
+    'browser WASD must move/strafe independently of the original turning bindings');
+  assert.match(fs.readFileSync(path.join(repo, 'wl_main.cpp'), 'utf8'),
+    /WOLF4SDL_WEB[\s\S]*dirscan\[di_north\] = sc_UpArrow[\s\S]*dirscan\[di_west\] = sc_LeftArrow/,
+    'persisted browser configs must not restore the old double-bound WASD directions');
+  assert.match(fs.readFileSync(path.join(repo, 'wl_menu.cpp'), 'utf8'),
+    /#ifndef WOLF4SDL_WEB[\s\S]*mouseenabled && IN_IsInputGrabbed\(\)/,
+    'browser menus must ignore mouse motion entirely');
   assert.match(playSource, /ex_completed[\s\S]*ex_secretlevel[\s\S]*ex_victorious \? 3 : 1/);
   assert.match(fs.readFileSync(path.join(repo, 'Makefile'), 'utf8'), /_WolfWasm_BrowserControlsMask/);
   assert.match(fs.readFileSync(path.join(repo, 'Makefile'), 'utf8'), /_WolfWasm_BrowserCaptureIntent/);
@@ -197,6 +207,10 @@ const context = {
   }, new Uint8Array([1]), 0, 1);
   assert.equal(persistenceDirty, 1, 'native save writes must mark framework persistence dirty');
   assert.equal(shellState, 'menu');
+
+  adapter.pointerMove({ captured: true, movementX: 9.6, movementY: -4 });
+  assert.deepEqual(controllerMouse.at(-1), [10, 0],
+    'captured browser mouse motion must use the native relative-input seam');
 
   nativeState = 2;
   intervals.at(-1)();

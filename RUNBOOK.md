@@ -72,9 +72,9 @@ Chromium evidence from 2026-08-15:
    pause. The automation-controlled Chrome surface did not grant pointer lock,
    so actual pointer-lock acquisition remains a manual-browser check; the
    adapter's capture request/loss behavior is covered by its contract test.
-6. The controller selection survived a page reload, both canvases remained 4:3
-   at their observed window sizes, and neither launch emitted browser warnings
-   or errors.
+6. Both canvases remained 4:3 at their observed window sizes, and neither
+   launch emitted browser warnings or errors. Controller support is currently
+   disabled for both variants.
 
 The source audit found the missing combat-audio cause: the old web
 guard skipped every call to `SD_PrepareSound`, leaving mapped weapon and enemy

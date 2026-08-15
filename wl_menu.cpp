@@ -3627,6 +3627,7 @@ ReadAnyControl (ControlInfo * ci)
 
     IN_ReadControl (0, ci);
 
+#ifndef WOLF4SDL_WEB
     if (mouseenabled && IN_IsInputGrabbed())
     {
         int mousex, mousey, buttons;
@@ -3671,6 +3672,7 @@ ReadAnyControl (ControlInfo * ci)
             mouseactive = 1;
         }
     }
+#endif
 
     if (joystickenabled && !mouseactive)
     {

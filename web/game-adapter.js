@@ -216,6 +216,11 @@
         }))
       });
       ctx.elements.canvas.addEventListener('contextmenu', event => event.preventDefault());
+      // Browser Wolf4SDL has keyboard-only menus. The framework publishes
+      // captured movementX through pointerMove(); suppress SDL's parallel raw
+      // mouse path so released motion cannot navigate menus and locked deltas
+      // are never counted twice.
+      ctx.elements.canvas.addEventListener('mousemove', event => event.stopImmediatePropagation(), true);
       document.addEventListener('keyup', event => {
         if (!started || (event.key !== 'Enter' && event.key !== 'Escape')) return;
         queueMicrotask(() => synchronizeState(ctx, event, true));
@@ -265,6 +270,10 @@
 
     readEngineState() { return nativeState(); },
     readCaptureIntent() { return captureIntent(); },
+    pointerMove(detail) {
+      if (!started || detail?.captured !== true || typeof engine?._WolfWasm_BrowserControllerMouse !== 'function') return;
+      engine._WolfWasm_BrowserControllerMouse(Math.round(detail.movementX || 0), 0);
+    },
     captureLost(_detail, ctx) {
       if (started && performance.now() - lastEscapeAt > 750 &&
           typeof engine?._WolfWasm_BrowserOpenMenu === 'function') engine._WolfWasm_BrowserOpenMenu();

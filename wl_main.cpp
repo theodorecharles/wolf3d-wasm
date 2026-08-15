@@ -89,10 +89,9 @@ extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserCaptureIntent()
 extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserControlsMask()
 {
     int mask = 0;
-    if (dirscan[di_north] == sc_W) mask |= 1;
-    if (dirscan[di_south] == sc_S) mask |= 2;
-    if (dirscan[di_west] == sc_A) mask |= 4;
-    if (dirscan[di_east] == sc_D) mask |= 8;
+    // WASD is a fixed browser-only layer in PollKeyboardMove. The persisted
+    // dirscan table remains available for the original arrow-key turning.
+    mask |= 1 | 2 | 4 | 8;
     if (mouseenabled) mask |= 16;
     return mask;
 }
@@ -261,6 +260,16 @@ noconfig:
         viewsize = 19;                          // start with a good size
         mouseadjustment=5;
     }
+
+#ifdef WOLF4SDL_WEB
+    // Older browser configs briefly persisted WASD in dirscan, which caused
+    // A/D to turn as well as strafe. Keep the classic turning bindings stable
+    // and let the dedicated browser WASD layer own movement.
+    dirscan[di_north] = sc_UpArrow;
+    dirscan[di_east] = sc_RightArrow;
+    dirscan[di_south] = sc_DownArrow;
+    dirscan[di_west] = sc_LeftArrow;
+#endif
 
     SD_SetMusicMode (sm);
     SD_SetSoundMode (sd);
