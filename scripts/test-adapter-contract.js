@@ -5,11 +5,26 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { execFileSync } = require('node:child_process');
+
+if (!process.env.WOLF4SDL_TEST_VARIANT) {
+  for (const variant of ['wolf3d', 'spear']) {
+    execFileSync(process.execPath, [__filename], {
+      stdio: 'inherit',
+      env: { ...process.env, WOLF4SDL_TEST_VARIANT: variant }
+    });
+  }
+  console.log('Verified both Wolf4SDL variants across audio preparation, WASD/mouse, state, capture, persistence, controller, PWA, and data-cache contracts.');
+  process.exit(0);
+}
 
 const repo = path.resolve(__dirname, '..');
+const testVariant = process.env.WOLF4SDL_TEST_VARIANT;
 const makefile = fs.readFileSync(path.join(repo, 'Makefile'), 'utf8');
 const config = JSON.parse(fs.readFileSync(path.join(repo, 'web/wasm-game.json'), 'utf8'));
 const dataManifest = JSON.parse(fs.readFileSync(path.join(repo, 'web/wasm-game-data.json'), 'utf8'));
+const selectedConfig = { ...config, ...config.variants[testVariant] };
+const selectedDataManifest = dataManifest.variants[testVariant];
 const listeners = new Map();
 const intervals = [];
 const stateChanges = [];
@@ -26,6 +41,7 @@ const controllerButtonMasks = [];
 let persistenceSaves = 0;
 let persistenceDirty = 0;
 let ownerPolicy = null;
+const scriptSources = [];
 
 assert.match(makefile, /-lidbfs\.js/,
   'the Emscripten build must expose IDBFS to framework persistence');
@@ -49,7 +65,10 @@ const engineParts = {
   _WolfWasm_BrowserControllerMouse(dx, dy) { controllerMouse.push([dx, dy]); },
   _WolfWasm_BrowserControllerButtons(mask) { controllerButtonMasks.push(mask); },
   _WolfWasm_BrowserCaptureIntent: () => nativeState === 5 ? 1 : 0,
-  _WolfWasm_BrowserControlsMask: () => 31
+  _WolfWasm_BrowserControlsMask: () => 31,
+  _WolfWasm_BrowserPreparedDigiSounds: () => testVariant === 'spear' ? 40 : 46,
+  _WolfWasm_BrowserDigiStarts: () => 3,
+  _WolfWasm_BrowserActiveDigiChannels: () => 1
 };
 const canvas = { addEventListener() {} };
 const sandbox = {
@@ -64,6 +83,7 @@ const sandbox = {
     createElement: () => ({}),
     head: {
       appendChild(script) {
+        scriptSources.push(script.src);
         Object.assign(sandbox.Module, engineParts);
         script.onload();
         sandbox.Module.onRuntimeInitialized();
@@ -85,6 +105,7 @@ vm.runInNewContext(fs.readFileSync(path.join(repo, 'web/game-adapter.js'), 'utf8
   { filename: 'web/game-adapter.js' });
 
 const context = {
+  variant: testVariant,
   elements: { canvas },
   framework: {
     requireCapabilities: () => ({ supported: true, missing: [] }),
@@ -92,7 +113,7 @@ const context = {
     mountOwnerFiles: async () => {}
   },
   persistence: {
-    root: '/persistent/wolf3d',
+    root: `/persistent/wolf4sdl/${testVariant}`,
     async attach(targetFs, options) {
       assert.equal(targetFs, engineParts.FS);
       assert.equal(options.root, this.root);
@@ -120,16 +141,16 @@ const context = {
 };
 
 (async () => {
-  assert.equal(config.fullscreen, true);
-  assert.equal(config.controller.mode, 'wasdMouse');
-  assert.equal(config.persistence.root, '/persistent/wolf3d');
-  assert.equal(config.identity, false);
-  assert.equal(config.graphics, false);
-  assert.equal(config.displayMode, '4:3');
-  assert.equal(config.canvasWidth / config.canvasHeight, 4 / 3);
-  assert.equal(config.pwa.icons.length, 2);
-  assert.equal(dataManifest.files.length, 8);
-  assert.ok(dataManifest.files.every(file => file.sha256));
+  assert.equal(selectedConfig.fullscreen, true);
+  assert.equal(selectedConfig.controller.mode, 'wasdMouse');
+  assert.equal(selectedConfig.persistence.root, '/persistent/wolf4sdl/{variant}');
+  assert.equal(selectedConfig.identity, false);
+  assert.equal(selectedConfig.graphics, false);
+  assert.equal(selectedConfig.displayMode, '4:3');
+  assert.equal(selectedConfig.canvasWidth / selectedConfig.canvasHeight, 4 / 3);
+  assert.equal(selectedConfig.pwa.icons.length, 2);
+  assert.equal(selectedDataManifest.files.length, 8);
+  assert.ok(selectedDataManifest.files.every(file => file.sha256));
 
   const playSource = fs.readFileSync(path.join(repo, 'wl_play.cpp'), 'utf8');
   assert.match(playSource, /WOLF4SDL_WEB[\s\S]*dirscan\[4\] = \{ sc_W, sc_D, sc_S, sc_A \}/);
@@ -137,6 +158,13 @@ const context = {
   assert.match(fs.readFileSync(path.join(repo, 'Makefile'), 'utf8'), /_WolfWasm_BrowserControlsMask/);
   assert.match(fs.readFileSync(path.join(repo, 'Makefile'), 'utf8'), /_WolfWasm_BrowserCaptureIntent/);
   assert.match(fs.readFileSync(path.join(repo, 'Makefile'), 'utf8'), /_WolfWasm_BrowserControllerMouse/);
+  assert.match(makefile, /_WolfWasm_BrowserPreparedDigiSounds/);
+  const mainSource = fs.readFileSync(path.join(repo, 'wl_main.cpp'), 'utf8');
+  assert.match(mainSource,
+    /DigiChannel\[map\[1\]\] = map\[2\];\s*SD_PrepareSound\(map\[1\]\);/,
+    'every mapped digitized effect must be prepared for the browser mixer');
+  assert.doesNotMatch(mainSource, /#ifndef WOLF4SDL_WEB\s*SD_PrepareSound/,
+    'the browser build must not skip digitized sound preparation');
   assert.match(fs.readFileSync(path.join(repo, 'id_in.cpp'), 'utf8'),
     /WolfWasm_BrowserControllerKey[\s\S]*Keyboard\[keycode\]/,
     'controller keys must use Wolf4SDL native keyboard state');
@@ -158,12 +186,15 @@ const context = {
   assert.equal(ownerPolicy.files.every(file => file.mountName === file.name.toLowerCase()), true,
     'owner data mounts under Wolf4SDL\'s lowercase Unix filenames');
   await adapter.start(context);
+  assert.deepEqual(scriptSources, [`/${testVariant}.js`]);
   assert.deepEqual(Array.from(mainArguments), [
-    '--res', '960', '720', '--datadir', '/game', '--configdir', '/persistent/wolf3d'
+    '--res', '960', '720', '--datadir', '/game', '--configdir', `/persistent/wolf4sdl/${testVariant}`
   ]);
   assert.deepEqual(lifecycle.map(entry => entry[0]), ['restore', 'main'],
     'persistence must restore before native main reads config and save slots');
-  engineParts.FS.write({ path: '/persistent/wolf3d/savegam0.wl6' }, new Uint8Array([1]), 0, 1);
+  engineParts.FS.write({
+    path: `/persistent/wolf4sdl/${testVariant}/savegam0.${testVariant === 'spear' ? 'sod' : 'wl6'}`
+  }, new Uint8Array([1]), 0, 1);
   assert.equal(persistenceDirty, 1, 'native save writes must mark framework persistence dirty');
   assert.equal(shellState, 'menu');
 
@@ -171,6 +202,9 @@ const context = {
   intervals.at(-1)();
   assert.equal(shellState, 'gameplay');
   assert.equal(sandbox.document.documentElement.dataset.wolf3dControlsValid, 'true');
+  assert.equal(Number(sandbox.document.documentElement.dataset.wolfAudioPrepared) > 0, true);
+  assert.equal(sandbox.document.documentElement.dataset.wolfAudioDigiStarts, '3');
+  assert.equal(sandbox.document.documentElement.dataset.wolfAudioActive, '1');
   nativeState = 3;
   intervals.at(-1)();
   assert.equal(shellState, 'debrief');
@@ -214,7 +248,7 @@ const context = {
   assert.equal(openMenuCalls, 1, 'Escape-triggered capture loss must not inject a second menu action');
   await Promise.resolve();
   assert.ok(persistenceSaves >= 1, 'capture loss must request a high-value persistence flush');
-  console.log('Verified Wolf3D WASD/mouse, state, Resume capture, fixed display, PWA, and data-cache behavior.');
+  console.log(`Verified ${testVariant} adapter contract.`);
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

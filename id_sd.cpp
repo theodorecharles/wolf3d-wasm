@@ -30,6 +30,7 @@
 #include "wl_def.h"
 #ifdef WOLF4SDL_WEB
 #include <emscripten/em_asm.h>
+#include <emscripten/emscripten.h>
 #include "web/sdl_mixer_stub.h"
 #else
 #include <SDL_mixer.h>
@@ -102,6 +103,10 @@ static  int                     RightPosition;
         word                    NumDigi;
 static  digiinfo               *DigiList;
 static  boolean                 DigiPlaying;
+#ifdef WOLF4SDL_WEB
+static  int                     WolfWebPreparedDigiSounds;
+static  int                     WolfWebDigiStarts;
+#endif
 
 //      PC Sound variables
 static  volatile byte           pcLastSample;
@@ -613,6 +618,10 @@ void SD_PrepareSound(int which)
 {
     if(DigiList == NULL)
         Quit("SD_PrepareSound(%i): DigiList not initialized!\n", which);
+    if(which < 0 || which >= NumDigi)
+        Quit("SD_PrepareSound(%i): bad sound number!\n", which);
+    if(SoundChunks[which] != NULL)
+        return;
 
     int page = DigiList[which].startpage;
     int size = DigiList[which].length;
@@ -649,9 +658,33 @@ void SD_PrepareSound(int which)
     }
     SoundBuffers[which] = wavebuffer;
 
+#ifdef WOLF4SDL_WEB
+    SoundChunks[which] = WolfWebMixLoadPCM16Mono(newsamples, destsamples);
+#else
     SoundChunks[which] = Mix_LoadWAV_RW(SDL_RWFromMem(wavebuffer,
         sizeof(headchunk) + sizeof(wavechunk) + destsamples * 2), 1);
+#endif
+#ifdef WOLF4SDL_WEB
+    if (SoundChunks[which]) ++WolfWebPreparedDigiSounds;
+#endif
 }
+
+#ifdef WOLF4SDL_WEB
+extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserPreparedDigiSounds(void)
+{
+    return WolfWebPreparedDigiSounds;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserDigiStarts(void)
+{
+    return WolfWebDigiStarts;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserActiveDigiChannels(void)
+{
+    return WolfWebMixActiveChannels();
+}
+#endif
 
 int SD_PlayDigitized(word which,int leftpos,int rightpos)
 {
@@ -678,6 +711,9 @@ int SD_PlayDigitized(word which,int leftpos,int rightpos)
         printf("Unable to play sound: %s\n", Mix_GetError());
         return 0;
     }
+#ifdef WOLF4SDL_WEB
+    ++WolfWebDigiStarts;
+#endif
 
     return channel;
 }

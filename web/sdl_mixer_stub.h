@@ -216,29 +216,13 @@ static inline void Mix_HookMusic(void (*callback)(void *, Uint8 *, int), void *d
     SDL_UnlockAudio();
 }
 
-static inline Mix_Chunk *Mix_LoadWAV_RW(SDL_RWops *source, int free_source)
+static inline Mix_Chunk *WolfWebMixLoadPCM16Mono(const Sint16 *samples, Uint32 frames)
 {
-    SDL_AudioSpec spec;
-    Uint8 *mono = NULL;
-    Uint32 mono_len = 0;
     Mix_Chunk *chunk = NULL;
-
-    if (!SDL_LoadWAV_RW(source, free_source, &spec, &mono, &mono_len))
-    {
-        wolf_web_mix_error = SDL_GetError();
-        return NULL;
-    }
-    if (spec.format != AUDIO_S16SYS || spec.channels != 1)
-    {
-        wolf_web_mix_error = "browser mixer expected signed 16-bit mono WAV data";
-        SDL_FreeWAV(mono);
-        return NULL;
-    }
 
     chunk = (Mix_Chunk *) malloc(sizeof(*chunk));
     if (chunk)
     {
-        Uint32 frames = mono_len / sizeof(Sint16);
         Sint16 *stereo = (Sint16 *) malloc((size_t) frames * 2 * sizeof(Sint16));
         if (!stereo)
         {
@@ -247,7 +231,6 @@ static inline Mix_Chunk *Mix_LoadWAV_RW(SDL_RWops *source, int free_source)
         }
         else
         {
-            const Sint16 *samples = (const Sint16 *)(const void *) mono;
             for (Uint32 i = 0; i < frames; ++i)
                 stereo[i * 2] = stereo[i * 2 + 1] = samples[i];
             chunk->abuf = (Uint8 *)(void *) stereo;
@@ -255,7 +238,6 @@ static inline Mix_Chunk *Mix_LoadWAV_RW(SDL_RWops *source, int free_source)
             chunk->volume = MIX_MAX_VOLUME;
         }
     }
-    SDL_FreeWAV(mono);
     if (!chunk) wolf_web_mix_error = "out of memory preparing browser sound";
     return chunk;
 }
@@ -278,6 +260,16 @@ static inline int Mix_PlayChannel(int channel, Mix_Chunk *chunk, int loops)
     wolf_web_channels[channel].serial = ++wolf_web_serial;
     SDL_UnlockAudio();
     return channel;
+}
+
+static inline int WolfWebMixActiveChannels(void)
+{
+    int active = 0;
+    SDL_LockAudio();
+    for (int channel = 0; channel < MIX_CHANNELS; ++channel)
+        if (wolf_web_channels[channel].chunk) ++active;
+    SDL_UnlockAudio();
+    return active;
 }
 
 #endif

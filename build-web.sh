@@ -25,7 +25,6 @@ if ! command -v emcc >/dev/null 2>&1; then
     source "$emsdk_dir/emsdk_env.sh" >/dev/null
 fi
 
-make -C "$repo_dir" clean
 mkdir -p "$dist_dir"
 rm -f \
     "$dist_dir/index.html" \
@@ -35,12 +34,25 @@ rm -f \
     "$dist_dir/wolf3d.html" \
     "$dist_dir/wolf3d.js" \
     "$dist_dir/wolf3d.wasm" \
+    "$dist_dir/spear.js" \
+    "$dist_dir/spear.wasm" \
     "$dist_dir/wolf3d.data"
-emmake make -C "$repo_dir" -j"$(nproc)" \
-    WEB=1 \
-    CC=emcc \
-    CXX=em++ \
-    BINARY=build-web/dist/wolf3d.js
+
+build_variant() {
+    local variant="$1"
+    local output="$2"
+    emmake make -C "$repo_dir" clean WEB=1 WEB_VARIANT="$variant" \
+        CC=emcc CXX=em++ BINARY="build-web/dist/$output.js"
+    emmake make -C "$repo_dir" -j"$(nproc)" \
+        WEB=1 \
+        WEB_VARIANT="$variant" \
+        CC=emcc \
+        CXX=em++ \
+        BINARY="build-web/dist/$output.js"
+}
+
+build_variant wolf3d wolf3d
+build_variant spear spear
 
 cp "$repo_dir/web/game-adapter.js" "$repo_dir/web/wasm-game.json" \
     "$repo_dir/web/wasm-game-data.json" "$dist_dir/"

@@ -7,9 +7,15 @@ PREFIX    ?= /usr/local
 MANPREFIX ?= $(PREFIX)
 
 WEB ?= 0
+WEB_VARIANT ?= wolf3d
 
 ifeq ($(WEB),1)
     CFLAGS += -DWOLF4SDL_WEB
+    ifeq ($(WEB_VARIANT),spear)
+        CFLAGS += -DSPEAR
+    else ifneq ($(WEB_VARIANT),wolf3d)
+        $(error Unsupported WEB_VARIANT '$(WEB_VARIANT)'; expected wolf3d or spear)
+    endif
     CFLAGS += -pthread
     CXXFLAGS += -Wno-c++11-narrowing
     CFLAGS_SDL ?= -s USE_SDL=1
@@ -22,7 +28,7 @@ ifeq ($(WEB),1)
     LDFLAGS += -lidbfs.js
     LDFLAGS += -s INVOKE_RUN=0
     LDFLAGS += -s EXIT_RUNTIME=0
-    LDFLAGS += -s EXPORTED_FUNCTIONS=_main,_WolfWasm_BrowserRuntimeState,_WolfWasm_BrowserCaptureIntent,_WolfWasm_BrowserControlsMask,_WolfWasm_BrowserSetInputCaptured,_WolfWasm_BrowserOpenMenu,_WolfWasm_BrowserControllerKey,_WolfWasm_BrowserControllerMouse,_WolfWasm_BrowserControllerButtons
+    LDFLAGS += -s EXPORTED_FUNCTIONS=_main,_WolfWasm_BrowserRuntimeState,_WolfWasm_BrowserCaptureIntent,_WolfWasm_BrowserControlsMask,_WolfWasm_BrowserSetInputCaptured,_WolfWasm_BrowserOpenMenu,_WolfWasm_BrowserControllerKey,_WolfWasm_BrowserControllerMouse,_WolfWasm_BrowserControllerButtons,_WolfWasm_BrowserPreparedDigiSounds,_WolfWasm_BrowserDigiStarts,_WolfWasm_BrowserActiveDigiChannels
     LDFLAGS += -s EXPORTED_RUNTIME_METHODS=FS,callMain
 endif
 

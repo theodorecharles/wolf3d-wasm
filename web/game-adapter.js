@@ -3,6 +3,7 @@
 
   let engine = null;
   let ownerData = null;
+  let variant = 'wolf3d';
   let runtimePromise = null;
   let started = false;
   let stateTimer = 0;
@@ -12,6 +13,15 @@
   let controllerButtons = 0;
   let controllerMenu = null;
   let controllerLookX = 0;
+
+  const engines = Object.freeze({
+    wolf3d: '/wolf3d.js',
+    spear: '/spear.js'
+  });
+
+  function gameTitle() {
+    return variant === 'spear' ? 'Spear of Destiny' : 'Wolfenstein 3D';
+  }
 
   const controllerKeys = Object.freeze({
     backspace: 8, tab: 9, enter: 13, escape: 27, space: 32,
@@ -140,20 +150,20 @@
         canvas: ctx.elements.canvas,
         noInitialRun: true,
         preRun: [() => { globalThis.SDL.defaults.copyOnLock = false; }],
-        print: (...args) => ctx.log(`[Wolf3D] ${args.join(' ')}`),
-        printErr: (...args) => ctx.log(`[Wolf3D] ${args.join(' ')}`),
+        print: (...args) => ctx.log(`[Wolf4SDL] ${args.join(' ')}`),
+        printErr: (...args) => ctx.log(`[Wolf4SDL] ${args.join(' ')}`),
         onAbort: reason => {
-          ctx.log(`Wolfenstein 3D stopped: ${reason}`);
+          ctx.log(`${gameTitle()} stopped: ${reason}`);
           ctx.showRuntime('crashed');
-          reject(new Error(`Wolfenstein 3D stopped: ${reason}`));
+          reject(new Error(`${gameTitle()} stopped: ${reason}`));
         },
-        setStatus: message => { if (message) ctx.setLoading('Loading Wolfenstein 3D engine…'); },
+        setStatus: message => { if (message) ctx.setLoading(`Loading ${gameTitle()} engine…`); },
         monitorRunDependencies: remaining => {
-          if (remaining) ctx.setLoading('Loading Wolfenstein 3D engine…', `${remaining} dependencies remaining`);
+          if (remaining) ctx.setLoading(`Loading ${gameTitle()} engine…`, `${remaining} dependencies remaining`);
         },
         onRuntimeInitialized: () => resolve(engine)
       };
-      loadScript('/wolf3d.js').catch(reject);
+      loadScript(engines[variant]).catch(reject);
     });
     return runtimePromise;
   }
@@ -168,6 +178,11 @@
         document.documentElement.dataset.wolf3dControlsMask = String(mask);
         document.documentElement.dataset.wolf3dControlsValid = String(mask === 31);
       }
+      if (typeof engine?._WolfWasm_BrowserPreparedDigiSounds === 'function') {
+        document.documentElement.dataset.wolfAudioPrepared = String(engine._WolfWasm_BrowserPreparedDigiSounds());
+        document.documentElement.dataset.wolfAudioDigiStarts = String(engine._WolfWasm_BrowserDigiStarts());
+        document.documentElement.dataset.wolfAudioActive = String(engine._WolfWasm_BrowserActiveDigiChannels());
+      }
     }, 100);
   }
 
@@ -175,6 +190,8 @@
     async init(ctx) {
       const capability = ctx.framework.requireCapabilities({ wasm: true, indexedDb: true });
       if (!capability.supported) throw new Error(`This browser is missing: ${capability.missing.join(', ')}.`);
+      variant = String(ctx.variant || 'wolf3d').toLowerCase();
+      if (!engines[variant]) throw new Error(`Unsupported Wolf4SDL variant: ${variant}.`);
       // Emscripten's packaged SDL driver still resolves its display as
       // "#canvas" even when Module.canvas points at the framework element.
       ctx.elements.canvas.id = 'canvas';
@@ -182,16 +199,18 @@
         if (!response.ok) throw new Error(`Wolfenstein 3D data policy failed with HTTP ${response.status}.`);
         return response.json();
       });
+      const policy = manifest.variants?.[variant];
+      if (!policy) throw new Error(`Wolf4SDL data policy is missing variant: ${variant}.`);
       ownerData = ctx.framework.createOwnerDataSet({
-        namespace: manifest.namespace,
-        version: manifest.version,
-        files: manifest.files.map(spec => ({
+        namespace: policy.namespace,
+        version: policy.version,
+        files: policy.files.map(spec => ({
           ...spec,
           // Wolf4SDL's Unix data probe uses lowercase DOS extensions while
           // Steam commonly installs uppercase filenames.
           mountName: spec.name.toLowerCase(),
           validate: async file => {
-            ctx.setLoading('Preparing Wolfenstein 3D…');
+            ctx.setLoading(`Preparing ${gameTitle()}…`);
             if (await sha256Hex(file) !== spec.sha256) throw new Error(`${spec.name} failed SHA-256 verification.`);
           }
         }))
@@ -209,27 +228,27 @@
     async start(ctx) {
       if (started) return;
       void ctx.shell.resumeAudio();
-      ctx.setLoading('Preparing Wolfenstein 3D…', '', 5);
+      ctx.setLoading(`Preparing ${gameTitle()}…`, '', 5);
       const data = await ctx.dataClient.load(ownerData, {
         onProgress(detail) {
-          if (detail.phase === 'checking-cache') ctx.setLoading('Preparing Wolfenstein 3D…');
+          if (detail.phase === 'checking-cache') ctx.setLoading(`Preparing ${gameTitle()}…`);
           if (detail.phase === 'downloading') {
             const percent = detail.total ? Math.floor(detail.received * 100 / detail.total) : 0;
-            ctx.setLoading('Preparing Wolfenstein 3D…', `${percent}%`, Math.min(55, 5 + percent / 2));
+            ctx.setLoading(`Preparing ${gameTitle()}…`, `${percent}%`, Math.min(55, 5 + percent / 2));
           }
-          if (detail.phase === 'restored') ctx.setLoading('Preparing Wolfenstein 3D…');
+          if (detail.phase === 'restored') ctx.setLoading(`Preparing ${gameTitle()}…`);
         }
       });
       document.documentElement.dataset.wasmDataSource = data.entries.every(entry => entry.cached) ? 'cache' : 'container';
-      ctx.setLoading('Loading Wolfenstein 3D engine…', '', 60);
+      ctx.setLoading(`Loading ${gameTitle()} engine…`, '', 60);
       await loadEngine(ctx);
-      ctx.setLoading('Preparing Wolfenstein 3D…', '', 75);
+      ctx.setLoading(`Preparing ${gameTitle()}…`, '', 75);
       await ctx.framework.mountOwnerFiles(engine, data, {
         root: '/game',
         mode: 'memfs',
         onProgress(detail) {
           if (detail.phase === 'mounting' && detail.total) {
-            ctx.setLoading('Preparing Wolfenstein 3D…', `${Math.floor(detail.copied * 100 / detail.total)}%`,
+            ctx.setLoading(`Preparing ${gameTitle()}…`, `${Math.floor(detail.copied * 100 / detail.total)}%`,
               75 + detail.copied * 20 / detail.total);
           }
         }
@@ -237,7 +256,7 @@
       persistentMount = await ctx.persistence.attach(engine.FS, { root: ctx.persistence.root });
       trackPersistentWrites(engine.FS, persistentMount);
       started = true;
-      ctx.setLoading('Starting Wolfenstein 3D…', '', 98);
+      ctx.setLoading(`Starting ${gameTitle()}…`, '', 98);
       try { engine.callMain(['--res', '960', '720', '--datadir', '/game', '--configdir', persistentMount.root]); }
       catch (error) { if (error !== 'unwind') throw error; }
       ctx.showRuntime(nativeState());
