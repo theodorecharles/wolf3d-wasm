@@ -33,14 +33,14 @@ root="$(curl -fsS "$base/")"
 grep -Fq '/shared-shell/wasm-game-framework.css' <<<"$root"
 grep -Fq '/shared-shell/wasm-game-bootstrap.js' <<<"$root"
 
-test "$(curl -fsS "$base/wasm-game-framework.json" | node -pe 'JSON.parse(fs.readFileSync(0)).version')" = "0.7.5"
+test "$(curl -fsS "$base/wasm-game-framework.json" | node -pe 'JSON.parse(fs.readFileSync(0)).version')" = "0.7.6"
 test "$(curl -fsS "$base/wasm-game-config.js" | sed -n 's/.*= "\([^"]*\)";.*/\1/p')" = "wolf3d"
 curl -fsS "$base/app.webmanifest?variant=wolf3d" | node -e '
 const manifest = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
 if (manifest.name !== "Wolfenstein 3D" || manifest.short_name !== "Wolf3D") process.exit(1);
 if (!Array.isArray(manifest.icons) || manifest.icons.length !== 2) process.exit(1);
 '
-curl -fsS "$base/service-worker.js" | grep -Fq 'wasm-game-shell-0.7.5'
+curl -fsS "$base/service-worker.js" | grep -Fq 'wasm-game-shell-0.7.6'
 
 headers="$(curl -fsSI "$base/wolf3d.wasm" | tr -d '\r')"
 grep -Fq 'Cross-Origin-Opener-Policy: same-origin' <<<"$headers"
@@ -58,4 +58,4 @@ test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$base/wasm-game.json")"
 
 docker rm -f "$active_cid" >/dev/null
 active_cid=""
-printf 'Wolf3D image HTTP, PWA, range, framework 0.7.5, and private-data contracts passed: %s\n' "$image"
+printf 'Wolf3D image HTTP, PWA, range, framework 0.7.6, and private-data contracts passed: %s\n' "$image"
