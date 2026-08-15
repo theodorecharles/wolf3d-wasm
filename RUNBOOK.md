@@ -11,8 +11,8 @@ Never submit work upstream. Never commit, upload, or package game data.
 ## Current checkpoint
 
 `./build-web.sh` produces separate Wolfenstein 3D and Spear of Destiny
-SDL1/Emscripten modules in `build-web/dist/`. Framework 0.9.1 at
-`68bfbd1dbc0104084c7760e486b7437d4c7bb90e` owns the canonical launcher, exact
+SDL1/Emscripten modules in `build-web/dist/`. Framework 0.9.2 at
+`53bc7e6eeef1ae35dcf3b25dea4e3ec0ab46726f` owns the canonical launcher, exact
 container provisioning, browser IndexedDB cache, 4:3 canvas, input capture,
 fullscreen preference, and PWA installation metadata. The adapter mounts the
 selected variant's eight `.WL6` or `.SOD` files under `/game` and starts the
