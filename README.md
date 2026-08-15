@@ -49,7 +49,7 @@ Emscripten SDK.
 ```bash
 git clone https://github.com/theodorecharles/wolf3d-wasm.git
 git clone https://github.com/theodorecharles/wasm-game-framework.git ../wasm-game-framework
-git -C ../wasm-game-framework checkout e617f090deaa294dacd033afa52c09f811a3e690
+git -C ../wasm-game-framework checkout 68bfbd1dbc0104084c7760e486b7437d4c7bb90e
 
 cd wolf3d-wasm
 EMSDK_DIR=/path/to/emsdk ./build-web.sh

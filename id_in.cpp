@@ -65,6 +65,7 @@ static bool NeedRestore = false;
 #ifdef WOLF4SDL_WEB
 static int WebMouseDeltaX = 0;
 static int WebMouseDeltaY = 0;
+static int WebControllerButtons = 0;
 #include <emscripten/emscripten.h>
 
 extern "C" EMSCRIPTEN_KEEPALIVE void WolfWasm_BrowserSetInputCaptured(int captured)
@@ -85,6 +86,28 @@ extern "C" EMSCRIPTEN_KEEPALIVE void WolfWasm_BrowserOpenMenu()
         LastScan = sc_Escape;
         Keyboard[sc_Escape] = true;
     }
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void WolfWasm_BrowserControllerKey(int keycode, int pressed)
+{
+    if (keycode <= sc_None || keycode >= SDLK_LAST)
+        return;
+    Keyboard[keycode] = pressed != 0;
+    if (pressed)
+        LastScan = keycode;
+    else if (LastScan == keycode)
+        LastScan = sc_None;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void WolfWasm_BrowserControllerMouse(int dx, int dy)
+{
+    WebMouseDeltaX += dx;
+    WebMouseDeltaY += dy;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void WolfWasm_BrowserControllerButtons(int mask)
+{
+    WebControllerButtons = mask & 7;
 }
 #endif
 
@@ -159,7 +182,11 @@ INL_GetMouseButtons(void)
     if(middlePressed) buttons |= 1 << 2;
     if(rightPressed) buttons |= 1 << 1;
 
+#ifdef WOLF4SDL_WEB
+    return buttons | WebControllerButtons;
+#else
     return buttons;
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////

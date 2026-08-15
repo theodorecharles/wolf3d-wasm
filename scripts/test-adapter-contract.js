@@ -7,6 +7,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const repo = path.resolve(__dirname, '..');
+const makefile = fs.readFileSync(path.join(repo, 'Makefile'), 'utf8');
 const config = JSON.parse(fs.readFileSync(path.join(repo, 'web/wasm-game.json'), 'utf8'));
 const dataManifest = JSON.parse(fs.readFileSync(path.join(repo, 'web/wasm-game-data.json'), 'utf8'));
 const listeners = new Map();
@@ -18,13 +19,35 @@ let openMenuCalls = 0;
 let captureValue = -1;
 let mainArguments = null;
 let now = 1000;
+const lifecycle = [];
+const controllerKeys = [];
+const controllerMouse = [];
+const controllerButtonMasks = [];
+let persistenceSaves = 0;
+let persistenceDirty = 0;
+let ownerPolicy = null;
+
+assert.match(makefile, /-lidbfs\.js/,
+  'the Emscripten build must expose IDBFS to framework persistence');
+assert.match(makefile, /CFLAGS \+= -pthread/,
+  'the browser native loop must run on its Emscripten worker');
+assert.match(makefile, /LDFLAGS \+= -pthread[\s\S]*PROXY_TO_PTHREAD=1[\s\S]*PTHREAD_POOL_SIZE=1/,
+  'the permanently blocking native loop must stay off the UI thread');
+assert.doesNotMatch(makefile, /ASYNCIFY=1/,
+  'the blocking engine loop is incompatible with callMain Asyncify unwinding');
 
 const engineParts = {
-  FS: { chdir() {} },
-  callMain(args) { mainArguments = args; },
+  FS: {
+    chdir() {},
+    write(_stream, _buffer, _offset, length) { return length; }
+  },
+  callMain(args) { mainArguments = args; lifecycle.push(['main', Array.from(args)]); },
   _WolfWasm_BrowserRuntimeState: () => nativeState,
   _WolfWasm_BrowserOpenMenu() { openMenuCalls += 1; nativeState = 4; },
   _WolfWasm_BrowserSetInputCaptured(value) { captureValue = value; },
+  _WolfWasm_BrowserControllerKey(code, pressed) { controllerKeys.push([code, pressed]); },
+  _WolfWasm_BrowserControllerMouse(dx, dy) { controllerMouse.push([dx, dy]); },
+  _WolfWasm_BrowserControllerButtons(mask) { controllerButtonMasks.push(mask); },
   _WolfWasm_BrowserCaptureIntent: () => nativeState === 5 ? 1 : 0,
   _WolfWasm_BrowserControlsMask: () => 31
 };
@@ -64,8 +87,22 @@ vm.runInNewContext(fs.readFileSync(path.join(repo, 'web/game-adapter.js'), 'utf8
 const context = {
   elements: { canvas },
   framework: {
-    createOwnerDataSet: policy => policy,
+    requireCapabilities: () => ({ supported: true, missing: [] }),
+    createOwnerDataSet: policy => { ownerPolicy = policy; return policy; },
     mountOwnerFiles: async () => {}
+  },
+  persistence: {
+    root: '/persistent/wolf3d',
+    async attach(targetFs, options) {
+      assert.equal(targetFs, engineParts.FS);
+      assert.equal(options.root, this.root);
+      lifecycle.push(['restore', options.root]);
+      return {
+        root: options.root,
+        markDirty() { persistenceDirty += 1; },
+        async save() { persistenceSaves += 1; }
+      };
+    }
   },
   dataClient: {
     load: async policy => ({ entries: policy.files.map(file => ({ cached: true, policy: file })) })
@@ -84,6 +121,8 @@ const context = {
 
 (async () => {
   assert.equal(config.fullscreen, true);
+  assert.equal(config.controller.mode, 'wasdMouse');
+  assert.equal(config.persistence.root, '/persistent/wolf3d');
   assert.equal(config.identity, false);
   assert.equal(config.graphics, false);
   assert.equal(config.displayMode, '4:3');
@@ -97,6 +136,13 @@ const context = {
   assert.match(playSource, /ex_completed[\s\S]*ex_secretlevel[\s\S]*ex_victorious \? 3 : 1/);
   assert.match(fs.readFileSync(path.join(repo, 'Makefile'), 'utf8'), /_WolfWasm_BrowserControlsMask/);
   assert.match(fs.readFileSync(path.join(repo, 'Makefile'), 'utf8'), /_WolfWasm_BrowserCaptureIntent/);
+  assert.match(fs.readFileSync(path.join(repo, 'Makefile'), 'utf8'), /_WolfWasm_BrowserControllerMouse/);
+  assert.match(fs.readFileSync(path.join(repo, 'id_in.cpp'), 'utf8'),
+    /WolfWasm_BrowserControllerKey[\s\S]*Keyboard\[keycode\]/,
+    'controller keys must use Wolf4SDL native keyboard state');
+  assert.match(fs.readFileSync(path.join(repo, 'wl_main.cpp'), 'utf8'),
+    /--datadir[\s\S]*chdir\(datadir\)[\s\S]*CheckForEpisodes/,
+    'the native worker must enter the mounted owner-data directory before discovery');
   const menuSource = fs.readFileSync(path.join(repo, 'wl_menu.cpp'), 'utf8');
   assert.match(menuSource, /startgame \|\| loadedgame[\s\S]*WolfWasmRuntimeState = 5/,
     'New Game and Load must synchronously publish native loading intent');
@@ -108,8 +154,17 @@ const context = {
 
   const adapter = sandbox.WasmGameAdapter;
   await adapter.init(context);
+  assert.equal(canvas.id, 'canvas', 'the framework canvas exposes SDL\'s native selector');
+  assert.equal(ownerPolicy.files.every(file => file.mountName === file.name.toLowerCase()), true,
+    'owner data mounts under Wolf4SDL\'s lowercase Unix filenames');
   await adapter.start(context);
-  assert.deepEqual(Array.from(mainArguments), ['--res', '960', '720']);
+  assert.deepEqual(Array.from(mainArguments), [
+    '--res', '960', '720', '--datadir', '/game', '--configdir', '/persistent/wolf3d'
+  ]);
+  assert.deepEqual(lifecycle.map(entry => entry[0]), ['restore', 'main'],
+    'persistence must restore before native main reads config and save slots');
+  engineParts.FS.write({ path: '/persistent/wolf3d/savegam0.wl6' }, new Uint8Array([1]), 0, 1);
+  assert.equal(persistenceDirty, 1, 'native save writes must mark framework persistence dirty');
   assert.equal(shellState, 'menu');
 
   nativeState = 2;
@@ -140,10 +195,25 @@ const context = {
   assert.equal(captureValue, 1);
 
   nativeState = 2;
+  adapter.controllerFrame({ deltaMs: 16, actions: {
+    forward: 1, backward: 0, left: 0, right: 0, lookX: 0.75, lookY: 0,
+    attack: 1, altAttack: 0, jump: 0, crouch: 0, reload: 0, weapon: 0,
+    previousWeapon: 0, nextWeapon: 0, scoreboard: 0, menu: 0, sprint: 0, melee: 0
+  } }, context);
+  assert.ok(controllerKeys.some(([code, pressed]) => code === 119 && pressed === 1));
+  assert.ok(controllerMouse.some(([dx]) => dx > 0));
+  assert.ok(controllerButtonMasks.includes(1));
+  adapter.controllerChanged({ connected: false, selection: 'auto', activeIndex: null }, context);
+  assert.ok(controllerKeys.some(([code, pressed]) => code === 119 && pressed === 0));
+  assert.equal(controllerButtonMasks.at(-1), 0);
+
+  nativeState = 2;
   now += 100;
   for (const listener of listeners.get('keydown')) listener({ key: 'Escape' });
   adapter.captureLost({}, context);
   assert.equal(openMenuCalls, 1, 'Escape-triggered capture loss must not inject a second menu action');
+  await Promise.resolve();
+  assert.ok(persistenceSaves >= 1, 'capture loss must request a high-value persistence flush');
   console.log('Verified Wolf3D WASD/mouse, state, Resume capture, fixed display, PWA, and data-cache behavior.');
 })().catch(error => {
   console.error(error);

@@ -19,9 +19,10 @@ ifeq ($(WEB),1)
     LDFLAGS += -s PROXY_TO_PTHREAD=1
     LDFLAGS += -s PTHREAD_POOL_SIZE=1
     LDFLAGS += -s FORCE_FILESYSTEM=1
+    LDFLAGS += -lidbfs.js
     LDFLAGS += -s INVOKE_RUN=0
     LDFLAGS += -s EXIT_RUNTIME=0
-    LDFLAGS += -s EXPORTED_FUNCTIONS=_main,_WolfWasm_BrowserRuntimeState,_WolfWasm_BrowserCaptureIntent,_WolfWasm_BrowserControlsMask,_WolfWasm_BrowserSetInputCaptured,_WolfWasm_BrowserOpenMenu
+    LDFLAGS += -s EXPORTED_FUNCTIONS=_main,_WolfWasm_BrowserRuntimeState,_WolfWasm_BrowserCaptureIntent,_WolfWasm_BrowserControlsMask,_WolfWasm_BrowserSetInputCaptured,_WolfWasm_BrowserOpenMenu,_WolfWasm_BrowserControllerKey,_WolfWasm_BrowserControllerMouse,_WolfWasm_BrowserControllerButtons
     LDFLAGS += -s EXPORTED_RUNTIME_METHODS=FS,callMain
 endif
 

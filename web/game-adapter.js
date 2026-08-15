@@ -7,6 +7,16 @@
   let started = false;
   let stateTimer = 0;
   let lastEscapeAt = 0;
+  let persistentMount = null;
+  const controllerHeld = new Map();
+  let controllerButtons = 0;
+  let controllerMenu = null;
+  let controllerLookX = 0;
+
+  const controllerKeys = Object.freeze({
+    backspace: 8, tab: 9, enter: 13, escape: 27, space: 32,
+    shift: 304, up: 273, down: 274, right: 275, left: 276
+  });
 
   function nativeState() {
     if (!started || typeof engine?._WolfWasm_BrowserRuntimeState !== 'function') return 'menu';
@@ -37,6 +47,84 @@
       script.onerror = () => reject(new Error(`Could not load ${source}.`));
       document.head.appendChild(script);
     });
+  }
+
+  function trackPersistentWrites(FS, mount) {
+    if (!mount || typeof FS.write !== 'function') return;
+    const originalWrite = FS.write.bind(FS);
+    FS.write = (stream, ...args) => {
+      const written = originalWrite(stream, ...args);
+      const path = String(stream?.path || (stream?.node && typeof FS.getPath === 'function' ? FS.getPath(stream.node) : '') || '');
+      if (path === mount.root || path.startsWith(`${mount.root}/`)) mount.markDirty();
+      return written;
+    };
+  }
+
+  function controllerKey(code, pressed) {
+    if (!started || typeof engine?._WolfWasm_BrowserControllerKey !== 'function') return;
+    const next = Boolean(pressed);
+    if (controllerHeld.get(code) === next) return;
+    controllerHeld.set(code, next);
+    engine._WolfWasm_BrowserControllerKey(code, next ? 1 : 0);
+  }
+
+  function setControllerButtons(mask) {
+    const next = Number(mask) & 7;
+    if (!started || controllerButtons === next || typeof engine?._WolfWasm_BrowserControllerButtons !== 'function') return;
+    controllerButtons = next;
+    engine._WolfWasm_BrowserControllerButtons(next);
+  }
+
+  function releaseController() {
+    if (started && typeof engine?._WolfWasm_BrowserControllerKey === 'function') {
+      for (const [code, pressed] of controllerHeld) {
+        if (pressed) engine._WolfWasm_BrowserControllerKey(code, 0);
+      }
+    }
+    controllerHeld.clear();
+    setControllerButtons(0);
+    controllerMenu = null;
+    controllerLookX = 0;
+  }
+
+  function applyControllerFrame(detail) {
+    if (!started || !detail?.actions) return;
+    const actions = detail.actions;
+    const menu = nativeState() !== 'gameplay';
+    if (controllerMenu !== menu) {
+      releaseController();
+      controllerMenu = menu;
+    }
+    const active = value => Number(value) >= 0.4;
+    if (menu) {
+      controllerKey(controllerKeys.up, active(actions.forward));
+      controllerKey(controllerKeys.down, active(actions.backward));
+      controllerKey(controllerKeys.left, active(actions.left));
+      controllerKey(controllerKeys.right, active(actions.right));
+      controllerKey(controllerKeys.enter, active(actions.jump) || active(actions.attack));
+      controllerKey(controllerKeys.backspace, active(actions.crouch) || active(actions.altAttack));
+      controllerKey(controllerKeys.escape, active(actions.menu));
+      return;
+    }
+
+    controllerKey(119, active(actions.forward));
+    controllerKey(115, active(actions.backward));
+    controllerKey(97, active(actions.left));
+    controllerKey(100, active(actions.right));
+    controllerKey(controllerKeys.space, active(actions.jump));
+    controllerKey(controllerKeys.shift, active(actions.sprint));
+    controllerKey(controllerKeys.tab, active(actions.scoreboard));
+    controllerKey(controllerKeys.escape, active(actions.menu));
+    controllerKey(101, active(actions.reload));
+    setControllerButtons((active(actions.attack) ? 1 : 0) | (active(actions.altAttack) ? 2 : 0));
+
+    const deltaMs = Math.max(0, Math.min(100, Number(detail.deltaMs) || 16.667));
+    controllerLookX += (Number(actions.lookX) || 0) * deltaMs * 0.65;
+    const dx = Math.trunc(controllerLookX);
+    controllerLookX -= dx;
+    if (dx && typeof engine?._WolfWasm_BrowserControllerMouse === 'function') {
+      engine._WolfWasm_BrowserControllerMouse(dx, 0);
+    }
   }
 
   async function sha256Hex(file) {
@@ -85,6 +173,11 @@
 
   globalThis.WasmGameAdapter = Object.freeze({
     async init(ctx) {
+      const capability = ctx.framework.requireCapabilities({ wasm: true, indexedDb: true });
+      if (!capability.supported) throw new Error(`This browser is missing: ${capability.missing.join(', ')}.`);
+      // Emscripten's packaged SDL driver still resolves its display as
+      // "#canvas" even when Module.canvas points at the framework element.
+      ctx.elements.canvas.id = 'canvas';
       const manifest = await fetch('/wasm-game-data.json', { cache: 'no-store' }).then(response => {
         if (!response.ok) throw new Error(`Wolfenstein 3D data policy failed with HTTP ${response.status}.`);
         return response.json();
@@ -94,7 +187,9 @@
         version: manifest.version,
         files: manifest.files.map(spec => ({
           ...spec,
-          mountName: spec.name,
+          // Wolf4SDL's Unix data probe uses lowercase DOS extensions while
+          // Steam commonly installs uppercase filenames.
+          mountName: spec.name.toLowerCase(),
           validate: async file => {
             ctx.setLoading('Preparing Wolfenstein 3D…');
             if (await sha256Hex(file) !== spec.sha256) throw new Error(`${spec.name} failed SHA-256 verification.`);
@@ -139,10 +234,11 @@
           }
         }
       });
-      engine.FS.chdir('/game');
+      persistentMount = await ctx.persistence.attach(engine.FS, { root: ctx.persistence.root });
+      trackPersistentWrites(engine.FS, persistentMount);
       started = true;
       ctx.setLoading('Starting Wolfenstein 3D…', '', 98);
-      try { engine.callMain(['--res', '960', '720']); }
+      try { engine.callMain(['--res', '960', '720', '--datadir', '/game', '--configdir', persistentMount.root]); }
       catch (error) { if (error !== 'unwind') throw error; }
       ctx.showRuntime(nativeState());
       startStatePolling(ctx);
@@ -154,11 +250,18 @@
       if (started && performance.now() - lastEscapeAt > 750 &&
           typeof engine?._WolfWasm_BrowserOpenMenu === 'function') engine._WolfWasm_BrowserOpenMenu();
       if (started) synchronizeState(ctx, null, false);
+      persistentMount?.save().catch(error => ctx.log(error));
     },
     inputCaptureChanged(captured) {
       if (started && typeof engine?._WolfWasm_BrowserSetInputCaptured === 'function') {
         engine._WolfWasm_BrowserSetInputCaptured(captured ? 1 : 0);
       }
+    },
+    controllerFrame(detail) {
+      applyControllerFrame(detail);
+    },
+    controllerChanged(detail) {
+      if (!detail?.connected || detail.selection === 'disabled' || detail.activeIndex == null) releaseController();
     }
   });
 })();

@@ -99,6 +99,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE int WolfWasm_BrowserControlsMask()
 #endif
 
 char    configdir[256] = "";
+char    datadir[256] = "";
 char    configname[13] = "config.";
 
 //
@@ -1959,6 +1960,20 @@ void CheckParameters(int argc, char *argv[])
                 }
             }
         }
+        else IFARG("--datadir")
+        {
+            if(++i >= argc)
+            {
+                printf("The datadir option is missing the dir argument!\n");
+                hasError = true;
+            }
+            else if(strlen(argv[i]) >= sizeof(datadir))
+            {
+                printf("The data directory is too long!\n");
+                hasError = true;
+            }
+            else strcpy(datadir, argv[i]);
+        }
         else IFARG("--goodtimes")
             param_goodtimes = true;
         else IFARG("--ignorenumchunks")
@@ -2003,6 +2018,7 @@ void CheckParameters(int argc, char *argv[])
             " --ignorenumchunks      Ignores the number of chunks in VGAHEAD.*\n"
             "                        (may be useful for some broken mods)\n"
             " --configdir <dir>      Directory where config file and save games are stored\n"
+            " --datadir <dir>        Directory containing the registered game data\n"
 #if defined(_arch_dreamcast) || defined(_WIN32)
             "                        (default: current directory)\n"
 #else
@@ -2041,6 +2057,12 @@ int main (int argc, char *argv[])
 #else
     CheckParameters(argc, argv);
 #endif
+
+    if(datadir[0] && chdir(datadir) != 0)
+    {
+        printf("Could not change to data directory %s\n", datadir);
+        return 1;
+    }
 
 #ifdef WOLF4SDL_WEB
     // A browser launch already has an explicit Play gesture. Skip the DOS-era
