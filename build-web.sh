@@ -4,8 +4,8 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dist_dir="$repo_dir/build-web/dist"
 framework_dir="${WASM_FRAMEWORK_DIR:-$repo_dir/../wasm-game-framework}"
-required_framework_version="0.9.2"
-required_framework_commit="53bc7e6eeef1ae35dcf3b25dea4e3ec0ab46726f"
+required_framework_version="0.9.4"
+required_framework_commit="c4ad3b9e075f881d32f044299fbfeee703a9169d"
 framework_version="$(node -p "require('$framework_dir/package.json').version")"
 framework_commit="$(git -C "$framework_dir" rev-parse HEAD)"
 
