@@ -53,5 +53,6 @@ else
     exit 1
 fi
 "$framework_dir/scripts/install-browser-package.sh" "$dist_dir/shared-shell" copy
+cp "$dist_dir/shared-shell/wasm-game-framework.json" "$dist_dir/wasm-game-framework.json"
 
 printf '[Wolf4SDL WASM] Canonical browser package %s ready under %s\n' "$required_framework_version" "$dist_dir"

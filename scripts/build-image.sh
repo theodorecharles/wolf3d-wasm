@@ -7,3 +7,4 @@ image="${1:-wolf3d-wasm:dev}"
 
 "$repo_dir/build-web.sh"
 "$framework_dir/scripts/build-static-image.sh" "$repo_dir/build-web/dist" "$image" wolf3d
+"$repo_dir/scripts/test-http.sh" "$image"
